@@ -1,1 +1,629 @@
+{
+  "schema_version": "1.0.0",
+  "dataset": "RO'Lyfe Relocation Intelligence Center",
+  "description": "Master geographic index for the RO'Lyfe Relocation Intelligence Engine. PA-first architecture designed to expand across all 50 U.S. states.",
+  "last_updated": "2026-09-18",
+  "country": "United States",
+  "state_count": 50,
 
+  "regions": {
+    "Northeast": [
+      "CT",
+      "ME",
+      "MA",
+      "NH",
+      "RI",
+      "VT",
+      "NJ",
+      "NY",
+      "PA"
+    ],
+    "Midwest": [
+      "IL",
+      "IN",
+      "MI",
+      "OH",
+      "WI",
+      "IA",
+      "KS",
+      "MN",
+      "MO",
+      "NE",
+      "ND",
+      "SD"
+    ],
+    "South": [
+      "DE",
+      "FL",
+      "GA",
+      "MD",
+      "NC",
+      "SC",
+      "VA",
+      "DC",
+      "WV",
+      "AL",
+      "KY",
+      "MS",
+      "TN",
+      "AR",
+      "LA",
+      "OK",
+      "TX"
+    ],
+    "West": [
+      "AZ",
+      "CO",
+      "ID",
+      "MT",
+      "NV",
+      "NM",
+      "UT",
+      "WY",
+      "AK",
+      "CA",
+      "HI",
+      "OR",
+      "WA"
+    ]
+  },
+
+  "special_regions": {
+    "Pacific": [
+      "CA",
+      "OR",
+      "WA",
+      "AK",
+      "HI"
+    ],
+    "Mid_Atlantic": [
+      "DE",
+      "MD",
+      "NJ",
+      "NY",
+      "PA",
+      "VA",
+      "WV"
+    ],
+    "Southeast": [
+      "AL",
+      "FL",
+      "GA",
+      "KY",
+      "MS",
+      "NC",
+      "SC",
+      "TN",
+      "VA",
+      "WV"
+    ],
+    "South_Central": [
+      "AR",
+      "LA",
+      "OK",
+      "TX"
+    ],
+    "Mountain_West": [
+      "AZ",
+      "CO",
+      "ID",
+      "MT",
+      "NV",
+      "NM",
+      "UT",
+      "WY"
+    ],
+    "New_England": [
+      "CT",
+      "ME",
+      "MA",
+      "NH",
+      "RI",
+      "VT"
+    ]
+  },
+
+  "states": [
+    {
+      "name": "Alabama",
+      "code": "AL",
+      "fips": "01",
+      "region": "South",
+      "special_regions": ["Southeast"],
+      "capital": "Montgomery",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Alaska",
+      "code": "AK",
+      "fips": "02",
+      "region": "West",
+      "special_regions": ["Pacific"],
+      "capital": "Juneau",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Arizona",
+      "code": "AZ",
+      "fips": "04",
+      "region": "West",
+      "special_regions": ["Mountain_West"],
+      "capital": "Phoenix",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Arkansas",
+      "code": "AR",
+      "fips": "05",
+      "region": "South",
+      "special_regions": ["South_Central"],
+      "capital": "Little Rock",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "California",
+      "code": "CA",
+      "fips": "06",
+      "region": "West",
+      "special_regions": ["Pacific"],
+      "capital": "Sacramento",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Colorado",
+      "code": "CO",
+      "fips": "08",
+      "region": "West",
+      "special_regions": ["Mountain_West"],
+      "capital": "Denver",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Connecticut",
+      "code": "CT",
+      "fips": "09",
+      "region": "Northeast",
+      "special_regions": ["New_England"],
+      "capital": "Hartford",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Delaware",
+      "code": "DE",
+      "fips": "10",
+      "region": "South",
+      "special_regions": ["Mid_Atlantic"],
+      "capital": "Dover",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Florida",
+      "code": "FL",
+      "fips": "12",
+      "region": "South",
+      "special_regions": ["Southeast"],
+      "capital": "Tallahassee",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Georgia",
+      "code": "GA",
+      "fips": "13",
+      "region": "South",
+      "special_regions": ["Southeast"],
+      "capital": "Atlanta",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Hawaii",
+      "code": "HI",
+      "fips": "15",
+      "region": "West",
+      "special_regions": ["Pacific"],
+      "capital": "Honolulu",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Idaho",
+      "code": "ID",
+      "fips": "16",
+      "region": "West",
+      "special_regions": ["Mountain_West"],
+      "capital": "Boise",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Illinois",
+      "code": "IL",
+      "fips": "17",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Springfield",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Indiana",
+      "code": "IN",
+      "fips": "18",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Indianapolis",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Iowa",
+      "code": "IA",
+      "fips": "19",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Des Moines",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Kansas",
+      "code": "KS",
+      "fips": "20",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Topeka",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Kentucky",
+      "code": "KY",
+      "fips": "21",
+      "region": "South",
+      "special_regions": ["Southeast"],
+      "capital": "Frankfort",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Louisiana",
+      "code": "LA",
+      "fips": "22",
+      "region": "South",
+      "special_regions": ["South_Central"],
+      "capital": "Baton Rouge",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Maine",
+      "code": "ME",
+      "fips": "23",
+      "region": "Northeast",
+      "special_regions": ["New_England"],
+      "capital": "Augusta",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Maryland",
+      "code": "MD",
+      "fips": "24",
+      "region": "South",
+      "special_regions": ["Mid_Atlantic", "Southeast"],
+      "capital": "Annapolis",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Massachusetts",
+      "code": "MA",
+      "fips": "25",
+      "region": "Northeast",
+      "special_regions": ["New_England"],
+      "capital": "Boston",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Michigan",
+      "code": "MI",
+      "fips": "26",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Lansing",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Minnesota",
+      "code": "MN",
+      "fips": "27",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Saint Paul",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Mississippi",
+      "code": "MS",
+      "fips": "28",
+      "region": "South",
+      "special_regions": ["Southeast"],
+      "capital": "Jackson",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Missouri",
+      "code": "MO",
+      "fips": "29",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Jefferson City",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Montana",
+      "code": "MT",
+      "fips": "30",
+      "region": "West",
+      "special_regions": ["Mountain_West"],
+      "capital": "Helena",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Nebraska",
+      "code": "NE",
+      "fips": "31",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Lincoln",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Nevada",
+      "code": "NV",
+      "fips": "32",
+      "region": "West",
+      "special_regions": ["Mountain_West"],
+      "capital": "Carson City",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "New Hampshire",
+      "code": "NH",
+      "fips": "33",
+      "region": "Northeast",
+      "special_regions": ["New_England"],
+      "capital": "Concord",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "New Jersey",
+      "code": "NJ",
+      "fips": "34",
+      "region": "Northeast",
+      "special_regions": ["Mid_Atlantic"],
+      "capital": "Trenton",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "New Mexico",
+      "code": "NM",
+      "fips": "35",
+      "region": "West",
+      "special_regions": ["Mountain_West"],
+      "capital": "Santa Fe",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "New York",
+      "code": "NY",
+      "fips": "36",
+      "region": "Northeast",
+      "special_regions": ["Mid_Atlantic"],
+      "capital": "Albany",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "North Carolina",
+      "code": "NC",
+      "fips": "37",
+      "region": "South",
+      "special_regions": ["Southeast"],
+      "capital": "Raleigh",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "North Dakota",
+      "code": "ND",
+      "fips": "38",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Bismarck",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Ohio",
+      "code": "OH",
+      "fips": "39",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Columbus",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Oklahoma",
+      "code": "OK",
+      "fips": "40",
+      "region": "South",
+      "special_regions": ["South_Central"],
+      "capital": "Oklahoma City",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Oregon",
+      "code": "OR",
+      "fips": "41",
+      "region": "West",
+      "special_regions": ["Pacific"],
+      "capital": "Salem",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Pennsylvania",
+      "code": "PA",
+      "fips": "42",
+      "region": "Northeast",
+      "special_regions": ["Mid_Atlantic"],
+      "capital": "Harrisburg",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_1",
+      "primary_state": true
+    },
+    {
+      "name": "Rhode Island",
+      "code": "RI",
+      "fips": "44",
+      "region": "Northeast",
+      "special_regions": ["New_England"],
+      "capital": "Providence",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "South Carolina",
+      "code": "SC",
+      "fips": "45",
+      "region": "South",
+      "special_regions": ["Southeast"],
+      "capital": "Columbia",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "South Dakota",
+      "code": "SD",
+      "fips": "46",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Pierre",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Tennessee",
+      "code": "TN",
+      "fips": "47",
+      "region": "South",
+      "special_regions": ["Southeast"],
+      "capital": "Nashville",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Texas",
+      "code": "TX",
+      "fips": "48",
+      "region": "South",
+      "special_regions": ["South_Central"],
+      "capital": "Austin",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Utah",
+      "code": "UT",
+      "fips": "49",
+      "region": "West",
+      "special_regions": ["Mountain_West"],
+      "capital": "Salt Lake City",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Vermont",
+      "code": "VT",
+      "fips": "50",
+      "region": "Northeast",
+      "special_regions": ["New_England"],
+      "capital": "Montpelier",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Virginia",
+      "code": "VA",
+      "fips": "51",
+      "region": "South",
+      "special_regions": ["Mid_Atlantic", "Southeast"],
+      "capital": "Richmond",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Washington",
+      "code": "WA",
+      "fips": "53",
+      "region": "West",
+      "special_regions": ["Pacific"],
+      "capital": "Olympia",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "West Virginia",
+      "code": "WV",
+      "fips": "54",
+      "region": "South",
+      "special_regions": ["Mid_Atlantic", "Southeast"],
+      "capital": "Charleston",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_2"
+    },
+    {
+      "name": "Wisconsin",
+      "code": "WI",
+      "fips": "55",
+      "region": "Midwest",
+      "special_regions": [],
+      "capital": "Madison",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    },
+    {
+      "name": "Wyoming",
+      "code": "WY",
+      "fips": "56",
+      "region": "West",
+      "special_regions": ["Mountain_West"],
+      "capital": "Cheyenne",
+      "status": "ACTIVE",
+      "build_priority": "PHASE_3"
+    }
+  ]
+    }
