@@ -1,194 +1,120 @@
-/*
-============================================================
-RO’LYFE RELOCATION INTELLIGENCE
-AI ADVISOR / DECISION PLANNING ENGINE
-============================================================
+/* ============================================================
+   RO’Lyfe Relocation Intelligence Center™
+   AI Advisor / Decision-Support Orchestrator
 
-File:
-    /modules/ai/advisor.js
+   File:
+   /modules/ai/advisor.js
 
-Version:
-    1.1.0
+   Version:
+   1.1.1
 
-Purpose:
-    Planning, intent classification, domain selection,
-    contextual interpretation, local response generation,
-    and decision-support orchestration for RO’Lyfe AI.
+   Change:
+   - Fixed initialization persistence order.
+   - Existing persisted advisor state is restored BEFORE
+     explicit initialization options are applied.
+   - Prevents startup configuration from overwriting saved
+     location, preferences, context, or history.
+   - Preserves the v1.1.0 public API and event model.
 
-Architecture:
-
-    USER
+   Architecture:
+   LOCATION
       ↓
-    AI.JS
+   DOMAIN MODULES
       ↓
-    ADVISOR
+   LOCATION ANALYSIS
       ↓
-    LOCATION ANALYSIS
+   ADVISOR
       ↓
-    DOMAIN INTELLIGENCE
+   AI.JS MASTER ORCHESTRATOR
       ↓
-    STRUCTURED CONTEXT
-      ↓
-    AI.JS RESPONSE
+   AI LOCATION INTELLIGENCE UI
 
-IMPORTANT:
+   Important:
+   - Advisor does NOT recursively call AI.js.
+   - Advisor is the decision-support/context layer.
+   - AI.js remains the master AI orchestration layer.
+   - No universal "best place" ranking.
+   - Recommendations are preference-driven and evidence-based.
+   - Missing data is surfaced rather than invented.
 
-    AI.JS is the master AI orchestration layer.
+   Copyright:
+   Root Of Lyfe LLC
+   ============================================================ */
 
-    ADVISOR does NOT recursively call AI.JS.
-
-    ADVISOR:
-      - classifies questions
-      - determines intent
-      - determines analysis mode
-      - selects intelligence domains
-      - gathers structured context
-      - identifies signals
-      - identifies gaps
-      - identifies tradeoffs
-      - creates actions
-      - creates local decision-support responses
-      - prepares AI-ready context
-
-    AI.JS:
-      - owns AI request orchestration
-      - owns remote endpoint communication
-      - owns conversation management
-      - owns final AI request/response pipeline
-
-SECURITY:
-
-    No production AI/API secret belongs in this browser file.
-
-============================================================
-*/
-
-(function (global) {
+(function (window) {
     "use strict";
 
-    const VERSION = "1.1.0";
-    const MODULE_NAME = "ROlyfeAdvisor";
+    /* ============================================================
+       VERSION
+       ============================================================ */
+
+    const VERSION = "1.1.1";
+
+    /* ============================================================
+       DEFAULT CONFIGURATION
+       ============================================================ */
 
     const DEFAULT_CONFIG = {
         autoInitialize: true,
 
         persist: true,
 
-        storageKey:
-            "rolyfe_advisor_v1",
+        storageKey: "rolyfe_advisor_v1",
 
-        maxDomains:
-            12,
+        maxHistory: 20,
 
-        maxQuestions:
-            8,
+        maxSignals: 30,
 
-        maxActions:
-            10,
+        maxGaps: 20,
 
-        maxSignals:
-            20,
+        maxTradeoffs: 20,
 
-        maxGaps:
-            15,
+        maxActions: 20,
 
-        maxTradeoffs:
-            15,
+        maxSources: 40,
 
-        defaultIntent:
-            "general",
+        maxResponseCharacters: 12000,
 
-        defaultMode:
-            "overview",
+        defaultGeography: "state",
 
-        includeSources:
-            true,
-
-        includeGaps:
-            true,
-
-        includeTradeoffs:
-            true,
-
-        includeActions:
-            true,
-
-        localFallback:
-            true
+        defaultMode: "overview"
     };
 
-    let config =
-        Object.assign(
-            {},
-            DEFAULT_CONFIG
-        );
-
-    let state =
-        createInitialState();
-
-    const listeners = [];
-
-    /* ======================================================
-       CONSTANTS
-    ====================================================== */
+    /* ============================================================
+       INTENTS
+       ============================================================ */
 
     const INTENTS = {
-        RELOCATION:
-            "relocation",
-
-        COMPARE:
-            "compare",
-
-        CLIMATE:
-            "climate",
-
-        WEATHER:
-            "weather",
-
-        RISK:
-            "risk",
-
-        HOUSING:
-            "housing",
-
-        COST:
-            "cost",
-
-        INCENTIVES:
-            "incentives",
-
-        BUSINESS:
-            "business",
-
-        PROPERTY:
-            "property",
-
-        OPPORTUNITY:
-            "opportunity",
-
-        GENERAL:
-            "general"
+        RELOCATION: "relocation",
+        COMPARE: "compare",
+        CLIMATE: "climate",
+        WEATHER: "weather",
+        RISK: "risk",
+        HOUSING: "housing",
+        COST: "cost",
+        INCENTIVES: "incentives",
+        BUSINESS: "business",
+        PROPERTY: "property",
+        OPPORTUNITY: "opportunity",
+        GENERAL: "general"
     };
+
+    /* ============================================================
+       MODES
+       ============================================================ */
 
     const MODES = {
-        OVERVIEW:
-            "overview",
-
-        DEEP_DIVE:
-            "deep_dive",
-
-        COMPARISON:
-            "comparison",
-
-        NEXT_STEPS:
-            "next_steps",
-
-        PROPERTY_CONTEXT:
-            "property_context",
-
-        BUSINESS_CONTEXT:
-            "business_context"
+        OVERVIEW: "overview",
+        DEEP_DIVE: "deep_dive",
+        COMPARISON: "comparison",
+        NEXT_STEPS: "next_steps",
+        PROPERTY_CONTEXT: "property_context",
+        BUSINESS_CONTEXT: "business_context"
     };
+
+    /* ============================================================
+       DOMAIN ORDER
+       ============================================================ */
 
     const DOMAIN_ORDER = [
         "location",
@@ -199,9 +125,13 @@ SECURITY:
         "costOfLiving",
         "incentives",
         "business",
-        "property",
-        "opportunity"
+        "opportunity",
+        "property"
     ];
+
+    /* ============================================================
+       INTENT → DOMAIN MAP
+       ============================================================ */
 
     const INTENT_DOMAINS = {
         relocation: [
@@ -219,6 +149,7 @@ SECURITY:
         compare: [
             "location",
             "climate",
+            "weather",
             "risk",
             "housing",
             "costOfLiving",
@@ -243,22 +174,24 @@ SECURITY:
         risk: [
             "location",
             "risk",
-            "weather",
-            "climate"
+            "climate",
+            "weather"
         ],
 
         housing: [
             "location",
             "housing",
             "costOfLiving",
-            "risk"
+            "risk",
+            "opportunity"
         ],
 
         cost: [
             "location",
             "costOfLiving",
             "housing",
-            "business"
+            "business",
+            "incentives"
         ],
 
         incentives: [
@@ -272,8 +205,8 @@ SECURITY:
             "location",
             "business",
             "incentives",
-            "opportunity",
-            "costOfLiving"
+            "costOfLiving",
+            "opportunity"
         ],
 
         property: [
@@ -282,8 +215,6 @@ SECURITY:
             "housing",
             "risk",
             "climate",
-            "weather",
-            "incentives",
             "business",
             "opportunity"
         ],
@@ -292,9 +223,9 @@ SECURITY:
             "location",
             "opportunity",
             "business",
-            "property",
+            "housing",
             "incentives",
-            "housing"
+            "property"
         ],
 
         general: [
@@ -306,41 +237,53 @@ SECURITY:
             "costOfLiving",
             "incentives",
             "business",
-            "property",
-            "opportunity"
+            "opportunity",
+            "property"
         ]
     };
+
+    /* ============================================================
+       KEYWORDS
+       ============================================================ */
 
     const KEYWORDS = {
         relocation: [
             "move",
+            "moving",
             "relocate",
             "relocation",
             "live",
             "living",
-            "moving",
-            "where should",
-            "where can i live"
+            "where should i live",
+            "where can i live",
+            "move to",
+            "relocate to"
         ],
 
         compare: [
             "compare",
+            "comparison",
             "versus",
             "vs",
-            "difference",
+            "between",
             "which location",
-            "between"
+            "locations"
         ],
 
         climate: [
             "climate",
+            "temperature",
             "hot",
             "cold",
-            "snow",
-            "rain",
+            "warm",
+            "cool",
+            "humid",
             "humidity",
-            "temperature",
-            "season"
+            "snow",
+            "winter",
+            "summer",
+            "rain",
+            "rainfall"
         ],
 
         weather: [
@@ -349,662 +292,406 @@ SECURITY:
             "today",
             "tonight",
             "tomorrow",
+            "radar",
             "storm",
-            "temperature now"
+            "storms",
+            "alert",
+            "alerts"
         ],
 
         risk: [
             "risk",
+            "danger",
             "hazard",
             "flood",
+            "flooding",
             "tornado",
             "hurricane",
             "wildfire",
             "earthquake",
             "drought",
-            "disaster",
-            "insurance risk"
+            "heat",
+            "freeze",
+            "disaster"
         ],
 
         housing: [
+            "housing",
             "house",
             "home",
-            "housing",
+            "homes",
             "rent",
             "rental",
+            "renting",
             "mortgage",
-            "home price",
-            "home prices",
-            "property price",
-            "afford"
+            "afford",
+            "affordability",
+            "property value",
+            "home price"
         ],
 
         cost: [
             "cost",
             "cost of living",
+            "expenses",
             "tax",
             "taxes",
-            "expense",
-            "expenses",
+            "income tax",
+            "property tax",
             "utilities",
-            "budget"
+            "cheap",
+            "expensive"
         ],
 
         incentives: [
-            "grant",
-            "grants",
             "incentive",
             "incentives",
-            "tax credit",
-            "abatement",
+            "relocation program",
+            "relocation programs",
+            "grant",
+            "grants",
             "rebate",
-            "program",
-            "funding program"
+            "rebates",
+            "tax credit",
+            "tax credits",
+            "homebuyer",
+            "down payment assistance"
         ],
 
         business: [
             "business",
-            "company",
+            "businesses",
             "startup",
+            "start a business",
+            "company",
             "entrepreneur",
-            "industry",
-            "job",
+            "entrepreneurship",
             "jobs",
+            "employment",
             "workforce",
-            "employer"
+            "industry",
+            "funding"
         ],
 
         property: [
             "property",
+            "deal",
             "real estate",
             "investment property",
-            "deal",
-            "arv",
-            "rehab",
             "flip",
-            "cash flow",
-            "cap rate",
-            "rental property"
+            "rehab",
+            "rehabilitation",
+            "arv",
+            "mao",
+            "rental property",
+            "cash flow"
         ],
 
         opportunity: [
             "opportunity",
+            "opportunities",
             "growth",
             "development",
             "investment",
-            "potential",
-            "market",
-            "build"
+            "invest",
+            "build",
+            "development potential"
         ]
     };
 
-    const RESPONSE_SECTIONS = {
-        relocation: [
-            "location",
-            "housing",
-            "climate",
-            "risk",
-            "opportunity",
-            "nextSteps"
-        ],
+    /* ============================================================
+       RESPONSE SECTIONS
+       ============================================================ */
 
-        compare: [
-            "comparison",
-            "tradeoffs",
-            "gaps",
-            "nextSteps"
-        ],
+    const RESPONSE_SECTIONS = [
+        "summary",
+        "signals",
+        "tradeoffs",
+        "gaps",
+        "actions",
+        "sources"
+    ];
 
-        climate: [
-            "climate",
-            "weather",
-            "risk",
-            "tradeoffs",
-            "nextSteps"
-        ],
+    /* ============================================================
+       CONFIG
+       ============================================================ */
 
-        weather: [
-            "weather",
-            "risk",
-            "nextSteps"
-        ],
+    let config = Object.assign({}, DEFAULT_CONFIG);
 
-        risk: [
-            "risk",
-            "weather",
-            "tradeoffs",
-            "nextSteps"
-        ],
-
-        housing: [
-            "housing",
-            "costOfLiving",
-            "risk",
-            "nextSteps"
-        ],
-
-        cost: [
-            "costOfLiving",
-            "housing",
-            "business",
-            "nextSteps"
-        ],
-
-        incentives: [
-            "incentives",
-            "business",
-            "gaps",
-            "nextSteps"
-        ],
-
-        business: [
-            "business",
-            "incentives",
-            "opportunity",
-            "nextSteps"
-        ],
-
-        property: [
-            "property",
-            "housing",
-            "risk",
-            "business",
-            "opportunity",
-            "nextSteps"
-        ],
-
-        opportunity: [
-            "opportunity",
-            "business",
-            "property",
-            "incentives",
-            "nextSteps"
-        ],
-
-        general: [
-            "location",
-            "signals",
-            "tradeoffs",
-            "gaps",
-            "nextSteps"
-        ]
-    };
-
-    /* ======================================================
-       INITIAL STATE
-    ====================================================== */
+    /* ============================================================
+       STATE FACTORY
+       ============================================================ */
 
     function createInitialState() {
+        const timestamp = now();
+
         return {
-            status:
-                "idle",
+            status: "idle",
 
-            initialized:
-                false,
+            initialized: false,
 
-            config:
-                clone(
-                    config
-                ),
+            config: clone(config),
 
-            location:
-                null,
+            location: null,
 
-            preferences:
-                {},
+            preferences: {},
 
-            lastQuestion:
-                "",
+            lastQuestion: "",
 
-            lastIntent:
-                "general",
+            lastIntent: INTENTS.GENERAL,
 
-            lastMode:
-                "overview",
+            lastMode: MODES.OVERVIEW,
 
             plan: {
-                intent:
-                    "general",
+                intent: INTENTS.GENERAL,
 
-                mode:
-                    "overview",
+                mode: MODES.OVERVIEW,
 
-                domains:
-                    [],
+                domains: INTENT_DOMAINS.general.slice(),
 
-                sections:
-                    [],
+                geography: config.defaultGeography,
 
-                question:
-                    "",
-
-                confidence:
-                    0
+                sections: RESPONSE_SECTIONS.slice()
             },
 
             context: {
-                location:
-                    null,
+                location: null,
 
-                preferences:
-                    {},
+                domains: {},
 
-                plan:
-                    null,
+                signals: [],
 
-                signals:
-                    [],
+                findings: [],
 
-                findings:
-                    [],
+                tradeoffs: [],
 
-                tradeoffs:
-                    [],
+                gaps: [],
 
-                gaps:
-                    [],
+                actions: [],
 
-                actions:
-                    [],
+                sources: [],
 
-                sources:
-                    [],
+                summary: "",
 
-                domains:
-                    {},
+                plan: null,
 
-                summary:
-                    "",
-
-                generatedAt:
-                    null
+                collectedAt: timestamp
             },
 
-            response:
-                null,
+            response: null,
 
-            history:
-                [],
+            history: [],
 
             metadata: {
-                version:
-                    VERSION,
+                version: VERSION,
 
-                createdAt:
-                    null,
+                createdAt: timestamp,
 
-                updatedAt:
-                    null,
+                updatedAt: timestamp,
 
-                requestCount:
-                    0
+                lastInitializedAt: null,
+
+                analysisCount: 0,
+
+                questionCount: 0
             }
         };
     }
 
-    /* ======================================================
-       HELPERS
-    ====================================================== */
+    let state = createInitialState();
+
+    /* ============================================================
+       LISTENERS
+       ============================================================ */
+
+    const listeners = {
+        initialized: [],
+        configured: [],
+        locationChanged: [],
+        preferencesChanged: [],
+        planCreated: [],
+        contextBuilt: [],
+        responseBuilt: [],
+        historyChanged: [],
+        stateChanged: [],
+        reset: []
+    };
+
+    /* ============================================================
+       BASIC HELPERS
+       ============================================================ */
 
     function now() {
         return new Date().toISOString();
     }
 
-    function safeString(
-        value,
-        fallback = ""
-    ) {
-        if (
-            value === null ||
-            value === undefined
-        ) {
-            return fallback;
+    function text(value, fallback) {
+        if (value === null || value === undefined) {
+            return fallback !== undefined ? fallback : "";
         }
 
-        return String(
-            value
-        ).trim();
+        return String(value);
     }
 
-    function normalizeText(
-        value
-    ) {
-        return safeString(
-            value
-        )
-            .toLowerCase()
-            .replace(
-                /\s+/g,
-                " "
-            );
-    }
+    function number(value, fallback) {
+        const n = Number(value);
 
-    function number(
-        value,
-        fallback = 0
-    ) {
-        const n =
-            Number(
-                value
-            );
-
-        return Number.isFinite(
-            n
-        )
+        return Number.isFinite(n)
             ? n
-            : fallback;
+            : (fallback !== undefined ? fallback : null);
     }
 
-    function clamp(
-        value,
-        min = 0,
-        max = 100
-    ) {
-        return Math.min(
-            max,
-            Math.max(
-                min,
-                number(
-                    value,
-                    min
-                )
-            )
-        );
+    function array(value) {
+        return Array.isArray(value) ? value : [];
     }
 
-    function array(
-        value
-    ) {
-        if (
-            Array.isArray(
-                value
-            )
-        ) {
+    function clone(value) {
+        if (value === undefined || value === null) {
             return value;
         }
 
-        if (
-            value === null ||
-            value === undefined
-        ) {
-            return [];
-        }
-
-        return [
-            value
-        ];
-    }
-
-    function unique(
-        values
-    ) {
-        return [
-            ...new Set(
-                array(
-                    values
-                ).filter(
-                    Boolean
-                )
-            )
-        ];
-    }
-
-    function limit(
-        values,
-        max
-    ) {
-        return array(
-            values
-        ).slice(
-            0,
-            max
-        );
-    }
-
-    function clone(
-        value
-    ) {
         try {
-            return JSON.parse(
-                JSON.stringify(
-                    value
-                )
-            );
-        } catch (
-            error
-        ) {
+            return JSON.parse(JSON.stringify(value));
+        } catch (error) {
             return value;
         }
     }
 
-    function emit(
-        eventName,
-        detail = {}
-    ) {
-        const event = {
-            event:
-                eventName,
+    function unique(values) {
+        const seen = new Set();
 
-            module:
-                MODULE_NAME,
+        return array(values).filter(function (value) {
+            const key =
+                typeof value === "object"
+                    ? JSON.stringify(value)
+                    : String(value);
 
-            version:
-                VERSION,
-
-            timestamp:
-                now(),
-
-            detail:
-                clone(
-                    detail
-                )
-        };
-
-        listeners
-            .slice()
-            .forEach(
-                listener => {
-                    try {
-                        listener(
-                            event
-                        );
-                    } catch (
-                        error
-                    ) {
-                        console.warn(
-                            `[${MODULE_NAME}] Listener error`,
-                            error
-                        );
-                    }
-                }
-            );
-
-        if (
-            typeof window !==
-                "undefined" &&
-            typeof window.dispatchEvent ===
-                "function" &&
-            typeof CustomEvent !==
-                "undefined"
-        ) {
-            try {
-                window.dispatchEvent(
-                    new CustomEvent(
-                        `rolyfe:advisor:${eventName}`,
-                        {
-                            detail:
-                                event
-                        }
-                    )
-                );
-            } catch (
-                error
-            ) {
-                /* Browser event is optional. */
+            if (seen.has(key)) {
+                return false;
             }
-        }
 
-        if (
-            eventName !==
-            "stateChanged"
-        ) {
-            emitStateChanged(
-                eventName,
-                detail
-            );
-        }
+            seen.add(key);
+
+            return true;
+        });
     }
 
-    function emitStateChanged(
-        sourceEvent,
-        detail = {}
-    ) {
-        const event = {
-            event:
-                "stateChanged",
+    function uniqueObjects(values, max) {
+        const output = [];
+        const seen = new Set();
 
-            module:
-                MODULE_NAME,
-
-            version:
-                VERSION,
-
-            timestamp:
-                now(),
-
-            detail: {
-                sourceEvent,
-
-                status:
-                    state.status,
-
-                plan:
-                    clone(
-                        state.plan
-                    ),
-
-                context:
-                    clone(
-                        state.context
-                    ),
-
-                response:
-                    clone(
-                        state.response
-                    ),
-
-                ...clone(
-                    detail
-                )
+        array(values).forEach(function (item) {
+            if (item === null || item === undefined) {
+                return;
             }
-        };
 
-        listeners
-            .slice()
-            .forEach(
-                listener => {
-                    try {
-                        if (
-                            listener.__rolyfeStateListener
-                        ) {
-                            listener(
-                                event
-                            );
-                        }
-                    } catch (
-                        error
-                    ) {
-                        console.warn(
-                            `[${MODULE_NAME}] State listener error`,
-                            error
-                        );
-                    }
-                }
-            );
+            const normalized =
+                typeof item === "object"
+                    ? clone(item)
+                    : { value: item };
 
-        if (
-            typeof window !==
-                "undefined" &&
-            typeof window.dispatchEvent ===
-                "function" &&
-            typeof CustomEvent !==
-                "undefined"
-        ) {
-            try {
-                window.dispatchEvent(
-                    new CustomEvent(
-                        "rolyfe:advisor:stateChanged",
-                        {
-                            detail:
-                                event
-                        }
-                    )
-                );
-            } catch (
-                error
-            ) {
-                /* Optional browser event. */
+            const key = JSON.stringify(normalized);
+
+            if (seen.has(key)) {
+                return;
             }
-        }
+
+            seen.add(key);
+
+            output.push(normalized);
+        });
+
+        return output.slice(0, max || output.length);
     }
 
-    /* ======================================================
+    /* ============================================================
+       EVENT SYSTEM
+       ============================================================ */
+
+    function emit(eventName, payload) {
+        const eventListeners = listeners[eventName];
+
+        if (!eventListeners) {
+            return;
+        }
+
+        eventListeners.slice().forEach(function (listener) {
+            try {
+                listener(payload, getState());
+            } catch (error) {
+                console.warn(
+                    "[RO’Lyfe Advisor] Listener error:",
+                    eventName,
+                    error
+                );
+            }
+        });
+    }
+
+    function emitStateChanged(reason) {
+        listeners.stateChanged.slice().forEach(function (listener) {
+            try {
+                listener(
+                    {
+                        reason: reason || "state_changed",
+                        state: getState()
+                    },
+                    getState()
+                );
+            } catch (error) {
+                console.warn(
+                    "[RO’Lyfe Advisor] State listener error:",
+                    error
+                );
+            }
+        });
+    }
+
+    /* ============================================================
        PERSISTENCE
-    ====================================================== */
+       ============================================================ */
 
-    function persist() {
-        if (
-            !config.persist ||
-            typeof localStorage ===
-                "undefined"
-        ) {
+    function canUseStorage() {
+        if (!config.persist) {
             return false;
         }
 
         try {
-            localStorage.setItem(
+            if (!window.localStorage) {
+                return false;
+            }
+
+            const testKey = "__rolyfe_advisor_storage_test__";
+
+            window.localStorage.setItem(testKey, "1");
+            window.localStorage.removeItem(testKey);
+
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function persist() {
+        if (!config.persist || !canUseStorage()) {
+            return false;
+        }
+
+        try {
+            state.metadata.updatedAt = now();
+
+            window.localStorage.setItem(
                 config.storageKey,
-                JSON.stringify(
-                    {
-                        location:
-                            state.location,
-
-                        preferences:
-                            state.preferences,
-
-                        lastQuestion:
-                            state.lastQuestion,
-
-                        lastIntent:
-                            state.lastIntent,
-
-                        lastMode:
-                            state.lastMode,
-
-                        plan:
-                            state.plan,
-
-                        context:
-                            state.context,
-
-                        response:
-                            state.response,
-
-                        history:
-                            state.history,
-
-                        metadata:
-                            state.metadata
-                    }
-                )
+                JSON.stringify({
+                    version: VERSION,
+                    state: clone(state)
+                })
             );
 
             return true;
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.warn(
-                `[${MODULE_NAME}] Persistence failed`,
+                "[RO’Lyfe Advisor] Persistence unavailable:",
                 error
             );
 
@@ -1013,53 +700,67 @@ SECURITY:
     }
 
     function restore() {
-        if (
-            !config.persist ||
-            typeof localStorage ===
-                "undefined"
-        ) {
+        if (!config.persist || !canUseStorage()) {
             return false;
         }
 
         try {
-            const raw =
-                localStorage.getItem(
-                    config.storageKey
-                );
+            const raw = window.localStorage.getItem(
+                config.storageKey
+            );
 
-            if (
-                !raw
-            ) {
+            if (!raw) {
                 return false;
             }
 
-            const saved =
-                JSON.parse(
-                    raw
-                );
+            const saved = JSON.parse(raw);
 
-            state =
-                Object.assign(
-                    createInitialState(),
-                    state,
-                    saved
-                );
+            if (!saved || !saved.state) {
+                return false;
+            }
 
-            state.config =
-                clone(
-                    config
-                );
+            const restored = saved.state;
 
-            emit(
-                "restored"
+            state = Object.assign(
+                createInitialState(),
+                restored
             );
 
+            state.config = Object.assign(
+                {},
+                config,
+                restored.config || {}
+            );
+
+            config = Object.assign(
+                {},
+                config,
+                restored.config || {}
+            );
+
+            state.config = clone(config);
+
+            state.plan = Object.assign(
+                createInitialState().plan,
+                restored.plan || {}
+            );
+
+            state.context = Object.assign(
+                createInitialState().context,
+                restored.context || {}
+            );
+
+            state.metadata = Object.assign(
+                createInitialState().metadata,
+                restored.metadata || {}
+            );
+
+            state.metadata.version = VERSION;
+
             return true;
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.warn(
-                `[${MODULE_NAME}] Restore failed`,
+                "[RO’Lyfe Advisor] Restore failed:",
                 error
             );
 
@@ -1068,179 +769,61 @@ SECURITY:
     }
 
     function clearPersistence() {
-        if (
-            typeof localStorage ===
-                "undefined"
-        ) {
+        if (!canUseStorage()) {
             return false;
         }
 
         try {
-            localStorage.removeItem(
+            window.localStorage.removeItem(
                 config.storageKey
             );
 
             return true;
-        } catch (
-            error
-        ) {
+        } catch (error) {
             return false;
         }
     }
 
-    /* ======================================================
-       LOCATION
-    ====================================================== */
-
-    function setLocation(
-        location = {}
-    ) {
-        state.location =
-            clone(
-                location
-            );
-
-        callModule(
-            "ROlyfeLocationAnalysis",
-            "setLocation",
-            location
-        );
-
-        state.metadata.updatedAt =
-            now();
-
-        emit(
-            "locationUpdated",
-            {
-                location:
-                    clone(
-                        location
-                    )
-            }
-        );
-
-        persist();
-
-        return clone(
-            state.location
-        );
-    }
-
-    function getLocation() {
-        if (
-            state.location
-        ) {
-            return clone(
-                state.location
-            );
-        }
-
-        return clone(
-            callModule(
-                "ROlyfeLocationAnalysis",
-                "getLocation"
-            )
-        );
-    }
-
-    /* ======================================================
-       PREFERENCES
-    ====================================================== */
-
-    function setPreferences(
-        preferences = {}
-    ) {
-        state.preferences =
-            Object.assign(
-                {},
-                state.preferences,
-                clone(
-                    preferences
-                )
-            );
-
-        callModule(
-            "ROlyfeLocationAnalysis",
-            "setPreferences",
-            preferences
-        );
-
-        state.metadata.updatedAt =
-            now();
-
-        emit(
-            "preferencesUpdated",
-            {
-                preferences:
-                    clone(
-                        state.preferences
-                    )
-            }
-        );
-
-        persist();
-
-        return clone(
-            state.preferences
-        );
-    }
-
-    function getPreferences() {
-        return clone(
-            state.preferences
-        );
-    }
-
-    /* ======================================================
+    /* ============================================================
        MODULE ACCESS
-    ====================================================== */
+       ============================================================ */
 
-    function getModule(
-        name
-    ) {
-        try {
-            return (
-                global[name] ||
-                null
-            );
-        } catch (
-            error
-        ) {
+    function getModule(name) {
+        if (!name) {
             return null;
         }
+
+        return (
+            window[name] ||
+            window[
+                name.replace(/^ROlyfe/, "ROLYFE_").toUpperCase()
+            ] ||
+            null
+        );
     }
 
-    function callModule(
-        moduleName,
-        method,
-        ...args
-    ) {
-        const module =
-            getModule(
-                moduleName
-            );
+    function callModule(moduleName, methodName) {
+        const module = getModule(moduleName);
 
         if (
             !module ||
-            typeof module[
-                method
-            ] !==
-                "function"
+            typeof module[methodName] !== "function"
         ) {
             return null;
         }
 
+        const args = Array.prototype.slice.call(
+            arguments,
+            2
+        );
+
         try {
-            return module[
-                method
-            ](
-                ...args
-            );
-        } catch (
-            error
-        ) {
+            return module[methodName].apply(module, args);
+        } catch (error) {
             console.warn(
-                `[${MODULE_NAME}] ${moduleName}.${method} failed`,
+                "[RO’Lyfe Advisor] Module call failed:",
+                moduleName,
+                methodName,
                 error
             );
 
@@ -1248,202 +831,207 @@ SECURITY:
         }
     }
 
-    /* ======================================================
-       QUESTION CLASSIFICATION
-    ====================================================== */
+    /* ============================================================
+       LOCATION
+       ============================================================ */
 
-    function scoreIntent(
-        question,
-        intent
-    ) {
-        const q =
-            normalizeText(
-                question
-            );
+    function setLocation(location) {
+        if (!location) {
+            state.location = null;
 
-        const keywords =
-            KEYWORDS[
-                intent
-            ] ||
-            [];
+            state.metadata.updatedAt = now();
 
-        let score =
-            0;
+            persist();
 
-        keywords.forEach(
-            keyword => {
-                if (
-                    q.includes(
-                        keyword
-                    )
-                ) {
-                    score +=
-                        keyword.length >=
-                        8
-                            ? 3
-                            : 2;
-                }
-            }
+            emit("locationChanged", null);
+
+            emitStateChanged("location_cleared");
+
+            return null;
+        }
+
+        if (typeof location === "string") {
+            location = {
+                name: location
+            };
+        }
+
+        state.location = clone(location);
+
+        state.metadata.updatedAt = now();
+
+        callModule(
+            "ROlyfeLocationAnalysis",
+            "setLocation",
+            state.location
         );
+
+        callModule(
+            "ROlyfeHousing",
+            "setLocation",
+            state.location
+        );
+
+        callModule(
+            "ROlyfeBusiness",
+            "setLocation",
+            state.location
+        );
+
+        callModule(
+            "ROlyfeIncentives",
+            "setLocation",
+            state.location
+        );
+
+        persist();
+
+        emit("locationChanged", clone(state.location));
+
+        emitStateChanged("location_changed");
+
+        return clone(state.location);
+    }
+
+    function getLocation() {
+        return clone(state.location);
+    }
+
+    /* ============================================================
+       PREFERENCES
+       ============================================================ */
+
+    function setPreferences(preferences) {
+        state.preferences = Object.assign(
+            {},
+            state.preferences || {},
+            preferences || {}
+        );
+
+        state.metadata.updatedAt = now();
+
+        callModule(
+            "ROlyfeLocationAnalysis",
+            "setPreferences",
+            state.preferences
+        );
+
+        callModule(
+            "ROlyfeHousing",
+            "setPreferences",
+            state.preferences
+        );
+
+        callModule(
+            "ROlyfeBusiness",
+            "setPreferences",
+            state.preferences
+        );
+
+        callModule(
+            "ROlyfeIncentives",
+            "setPreferences",
+            state.preferences
+        );
+
+        persist();
+
+        emit(
+            "preferencesChanged",
+            clone(state.preferences)
+        );
+
+        emitStateChanged("preferences_changed");
+
+        return clone(state.preferences);
+    }
+
+    function getPreferences() {
+        return clone(state.preferences || {});
+    }
+
+    /* ============================================================
+       INTENT CLASSIFICATION
+       ============================================================ */
+
+    function scoreIntent(question, intent) {
+        const q = text(question).toLowerCase();
+
+        const keywords = KEYWORDS[intent] || [];
+
+        let score = 0;
+
+        keywords.forEach(function (keyword) {
+            if (q.indexOf(keyword.toLowerCase()) !== -1) {
+                score += keyword.length > 5 ? 2 : 1;
+            }
+        });
 
         return score;
     }
 
-    function classifyQuestion(
-        question = ""
-    ) {
-        const q =
-            normalizeText(
-                question
-            );
+    function classifyQuestion(question) {
+        const q = text(question).trim();
 
-        if (
-            !q
-        ) {
-            return {
-                intent:
-                    config.defaultIntent,
-
-                confidence:
-                    0,
-
-                matches:
-                    []
-            };
+        if (!q) {
+            return INTENTS.GENERAL;
         }
 
-        const scored =
-            Object.keys(
-                KEYWORDS
-            )
-                .map(
-                    intent => ({
-                        intent,
+        const scores = {};
 
-                        score:
-                            scoreIntent(
-                                q,
-                                intent
-                            )
-                    })
-                )
-                .filter(
-                    item =>
-                        item.score >
-                        0
-                )
-                .sort(
-                    (
-                        a,
-                        b
-                    ) =>
-                        b.score -
-                        a.score
-                );
+        Object.keys(KEYWORDS).forEach(function (intent) {
+            scores[intent] = scoreIntent(q, intent);
+        });
 
-        const top =
-            scored[0];
+        let bestIntent = INTENTS.GENERAL;
+        let bestScore = 0;
 
-        if (
-            !top
-        ) {
-            return {
-                intent:
-                    config.defaultIntent,
+        Object.keys(scores).forEach(function (intent) {
+            if (scores[intent] > bestScore) {
+                bestScore = scores[intent];
+                bestIntent = intent;
+            }
+        });
 
-                confidence:
-                    0,
-
-                matches:
-                    []
-            };
-        }
-
-        const second =
-            scored[1];
-
-        const confidence =
-            second
-                ? clamp(
-                    (
-                        top.score /
-                        (
-                            top.score +
-                            second.score
-                        )
-                    ) *
-                    100
-                )
-                : clamp(
-                    top.score *
-                    15
-                );
-
-        return {
-            intent:
-                top.intent,
-
-            confidence:
-                Math.round(
-                    confidence
-                ),
-
-            matches:
-                scored
-        };
+        return bestIntent;
     }
 
-    /* ======================================================
+    /* ============================================================
        MODE
-    ====================================================== */
+       ============================================================ */
 
-    function determineMode(
-        question,
-        intent
-    ) {
-        const q =
-            normalizeText(
-                question
-            );
+    function determineMode(intent, question) {
+        const q = text(question).toLowerCase();
 
         if (
-            intent ===
-            INTENTS.COMPARE ||
-            /compare|versus|\bvs\b|between/i.test(
-                q
-            )
+            intent === INTENTS.COMPARE ||
+            q.indexOf("compare") !== -1 ||
+            q.indexOf("versus") !== -1 ||
+            q.indexOf(" vs ") !== -1
         ) {
             return MODES.COMPARISON;
         }
 
-        if (
-            intent ===
-            INTENTS.PROPERTY
-        ) {
+        if (intent === INTENTS.PROPERTY) {
             return MODES.PROPERTY_CONTEXT;
         }
 
-        if (
-            intent ===
-            INTENTS.BUSINESS
-        ) {
+        if (intent === INTENTS.BUSINESS) {
             return MODES.BUSINESS_CONTEXT;
         }
 
         if (
-            /next|what should i do|what do i need|steps|action/i
-                .test(
-                    q
-                )
+            q.indexOf("what should i do") !== -1 ||
+            q.indexOf("next step") !== -1 ||
+            q.indexOf("next steps") !== -1
         ) {
             return MODES.NEXT_STEPS;
         }
 
         if (
-            /deep|detailed|detail|everything|full analysis/i
-                .test(
-                    q
-                )
+            q.indexOf("deep") !== -1 ||
+            q.indexOf("detailed") !== -1 ||
+            q.indexOf("full analysis") !== -1
         ) {
             return MODES.DEEP_DIVE;
         }
@@ -1451,1057 +1039,700 @@ SECURITY:
         return MODES.OVERVIEW;
     }
 
-    /* ======================================================
-       DOMAIN PLANNING
-    ====================================================== */
+    /* ============================================================
+       DOMAIN SELECTION
+       ============================================================ */
 
-    function getDomainsForIntent(
-        intent,
-        options = {}
-    ) {
-        let domains =
-            INTENT_DOMAINS[
-                intent
-            ] ||
-            INTENT_DOMAINS.general;
-
-        if (
-            options.includeDomains
-        ) {
-            domains =
-                domains.concat(
-                    array(
-                        options.includeDomains
-                    )
-                );
-        }
-
-        if (
-            options.excludeDomains
-        ) {
-            const excluded =
-                new Set(
-                    array(
-                        options.excludeDomains
-                    )
-                );
-
-            domains =
-                domains.filter(
-                    domain =>
-                        !excluded.has(
-                            domain
-                        )
-                );
-        }
-
-        return limit(
-            unique(
-                domains
-            ),
-            config.maxDomains
-        );
+    function getDomainsForIntent(intent) {
+        return (
+            INTENT_DOMAINS[intent] ||
+            INTENT_DOMAINS.general
+        ).slice();
     }
 
-    function buildResponsePlan(
-        question = "",
-        options = {}
-    ) {
-        const classification =
-            classifyQuestion(
-                question
-            );
+    /* ============================================================
+       RESPONSE PLAN
+       ============================================================ */
 
-        const intent =
-            options.intent ||
-            classification.intent ||
-            config.defaultIntent;
+    function buildResponsePlan(question) {
+        const intent = classifyQuestion(question);
 
-        const mode =
-            options.mode ||
-            determineMode(
-                question,
-                intent
-            );
+        const mode = determineMode(
+            intent,
+            question
+        );
 
-        const domains =
-            getDomainsForIntent(
-                intent,
-                options
-            );
-
-        const sections =
-            RESPONSE_SECTIONS[
-                intent
-            ] ||
-            RESPONSE_SECTIONS.general;
+        const domains = getDomainsForIntent(intent);
 
         const plan = {
-            intent,
+            intent: intent,
 
-            mode,
+            mode: mode,
 
-            domains:
-                limit(
-                    domains,
-                    config.maxDomains
-                ),
+            domains: domains,
 
-            sections:
-                unique(
-                    sections
-                ),
+            geography:
+                state.location &&
+                state.location.geography
+                    ? state.location.geography
+                    : config.defaultGeography,
 
-            question:
-                safeString(
-                    question
-                ),
+            sections: RESPONSE_SECTIONS.slice(),
 
-            confidence:
-                classification.confidence
+            createdAt: now()
         };
 
-        state.plan =
-            clone(
-                plan
-            );
+        state.lastIntent = intent;
 
-        state.lastIntent =
-            intent;
+        state.lastMode = mode;
 
-        state.lastMode =
-            mode;
+        state.plan = plan;
 
-        state.lastQuestion =
-            safeString(
-                question
-            );
+        emit("planCreated", clone(plan));
 
-        emit(
-            "planCreated",
-            {
-                plan:
-                    clone(
-                        plan
-                    )
-            }
-        );
+        emitStateChanged("plan_created");
 
-        return clone(
-            plan
-        );
+        return clone(plan);
     }
 
-    /* ======================================================
-       PROFILE ACCESS
-    ====================================================== */
+    /* ============================================================
+       SAFE PROFILE ACCESS
+       ============================================================ */
 
     function safelyGetProfile(
-        module,
-        preferredMethods = []
+        moduleName,
+        profileMethods
     ) {
-        if (
-            !module
-        ) {
+        const module = getModule(moduleName);
+
+        if (!module) {
             return null;
         }
 
-        for (
-            const method of
-                preferredMethods
-        ) {
-            if (
-                typeof module[
-                    method
-                ] ===
-                    "function"
-            ) {
-                try {
-                    const result =
-                        module[
-                            method
-                        ]();
+        const methods = array(profileMethods);
 
-                    if (
-                        result !==
-                        null &&
-                        result !==
-                        undefined
-                    ) {
-                        return result;
-                    }
-                } catch (
-                    error
-                ) {
-                    /* Continue to next getter. */
+        for (let i = 0; i < methods.length; i++) {
+            const method = methods[i];
+
+            if (typeof module[method] !== "function") {
+                continue;
+            }
+
+            try {
+                const result = module[method]();
+
+                if (result !== undefined && result !== null) {
+                    return clone(result);
                 }
+            } catch (error) {
+                console.warn(
+                    "[RO’Lyfe Advisor] Profile error:",
+                    moduleName,
+                    method,
+                    error
+                );
             }
         }
 
         return null;
     }
 
-    function collectDomainContext(
-        plan,
-        options = {}
-    ) {
-        const domains =
-            {};
+    /* ============================================================
+       DOMAIN CONTEXT
+       ============================================================ */
 
-        const moduleMap = {
-            location:
-                [
-                    "ROlyfeLocationAnalysis",
-                    [
+    function collectDomainContext(plan) {
+        const domains = {};
+
+        array(plan.domains).forEach(function (domain) {
+            let moduleName = null;
+
+            let methods = [];
+
+            switch (domain) {
+                case "location":
+                    moduleName =
+                        "ROlyfeLocationAnalysis";
+
+                    methods = [
                         "getResult",
-                        "getAnalysis",
-                        "getState"
-                    ]
-                ],
-
-            climate:
-                [
-                    "ROlyfeClimate",
-                    [
                         "getProfile",
-                        "getResult",
                         "getAnalysis",
                         "getState"
-                    ]
-                ],
-
-            weather:
-                [
-                    "ROlyfeWeather",
-                    [
-                        "getProfile",
-                        "getResult",
-                        "getAnalysis",
-                        "getState"
-                    ]
-                ],
-
-            risk:
-                [
-                    "ROlyfeRisk",
-                    [
-                        "getProfile",
-                        "getResult",
-                        "getAnalysis",
-                        "getState"
-                    ]
-                ],
-
-            housing:
-                [
-                    "ROlyfeHousing",
-                    [
-                        "getProfile",
-                        "getResult",
-                        "getAnalysis",
-                        "getState"
-                    ]
-                ],
-
-            costOfLiving:
-                [
-                    "ROlyfeCostOfLiving",
-                    [
-                        "getProfile",
-                        "getResult",
-                        "getAnalysis",
-                        "getState"
-                    ]
-                ],
-
-            incentives:
-                [
-                    "ROlyfeIncentives",
-                    [
-                        "getProfile",
-                        "getResult",
-                        "getAnalysis",
-                        "getState"
-                    ]
-                ],
-
-            business:
-                [
-                    "ROlyfeBusiness",
-                    [
-                        "getProfile",
-                        "getResult",
-                        "getAnalysis",
-                        "getState"
-                    ]
-                ],
-
-            property:
-                [
-                    "ROlyfePropertyAnalysis",
-                    [
-                        "getAnalysis",
-                        "getResult",
-                        "getState"
-                    ]
-                ],
-
-            opportunity:
-                [
-                    "ROlyfeOpportunityEngine",
-                    [
-                        "getAnalysis",
-                        "getResult",
-                        "getState"
-                    ]
-                ]
-        };
-
-        plan.domains.forEach(
-            domain => {
-                const definition =
-                    moduleMap[
-                        domain
                     ];
+                    break;
 
-                if (
-                    !definition
-                ) {
-                    domains[
-                        domain
-                    ] = null;
+                case "climate":
+                    moduleName = "ROlyfeClimate";
 
-                    return;
-                }
+                    methods = [
+                        "getResult",
+                        "getProfile",
+                        "getSummary",
+                        "getState"
+                    ];
+                    break;
 
-                const module =
-                    getModule(
-                        definition[0]
-                    );
+                case "weather":
+                    moduleName = "ROlyfeWeather";
 
-                domains[
-                    domain
-                ] =
-                    safelyGetProfile(
-                        module,
-                        definition[1]
-                    );
+                    methods = [
+                        "getResult",
+                        "getProfile",
+                        "getSummary",
+                        "getState"
+                    ];
+                    break;
+
+                case "risk":
+                    moduleName = "ROlyfeRisk";
+
+                    methods = [
+                        "getResult",
+                        "getProfile",
+                        "getSummary",
+                        "getState"
+                    ];
+                    break;
+
+                case "housing":
+                    moduleName = "ROlyfeHousing";
+
+                    methods = [
+                        "getResult",
+                        "getProfile",
+                        "getSummary",
+                        "getState"
+                    ];
+                    break;
+
+                case "costOfLiving":
+                    moduleName = "ROlyfeCostOfLiving";
+
+                    methods = [
+                        "getResult",
+                        "getProfile",
+                        "getSummary",
+                        "getState"
+                    ];
+                    break;
+
+                case "incentives":
+                    moduleName = "ROlyfeIncentives";
+
+                    methods = [
+                        "getResult",
+                        "getProfile",
+                        "getSummary",
+                        "getState"
+                    ];
+                    break;
+
+                case "business":
+                    moduleName = "ROlyfeBusiness";
+
+                    methods = [
+                        "getResult",
+                        "getProfile",
+                        "getSummary",
+                        "getState"
+                    ];
+                    break;
+
+                case "opportunity":
+                    moduleName =
+                        "ROlyfeOpportunityEngine";
+
+                    methods = [
+                        "getResult",
+                        "getProfile",
+                        "getSummary",
+                        "getState"
+                    ];
+                    break;
+
+                case "property":
+                    moduleName =
+                        "ROlyfePropertyAnalysis";
+
+                    methods = [
+                        "getResult",
+                        "getProfile",
+                        "getSummary",
+                        "getState"
+                    ];
+                    break;
+
+                default:
+                    break;
             }
-        );
 
-        if (
-            options.core
-        ) {
-            domains.core =
-                clone(
-                    options.core
-                );
-        }
+            if (!moduleName) {
+                return;
+            }
+
+            const profile = safelyGetProfile(
+                moduleName,
+                methods
+            );
+
+            if (profile) {
+                domains[domain] = profile;
+            }
+        });
 
         return domains;
     }
 
-    /* ======================================================
+    /* ============================================================
        ARRAY EXTRACTION
-    ====================================================== */
+       ============================================================ */
 
-    function extractArray(
-        source,
-        keys
-    ) {
-        if (
-            !source
-        ) {
+    function extractArray(source, keys) {
+        if (!source || typeof source !== "object") {
             return [];
         }
 
-        for (
-            const key of
-                array(
-                    keys
-                )
-        ) {
-            if (
-                Array.isArray(
-                    source[
-                        key
-                    ]
-                )
-            ) {
-                return source[
-                    key
-                ];
+        for (let i = 0; i < keys.length; i++) {
+            const value = source[keys[i]];
+
+            if (Array.isArray(value)) {
+                return value;
             }
         }
 
         return [];
     }
 
-    /* ======================================================
-       SIGNALS / GAPS / TRADEOFFS
-    ====================================================== */
+    /* ============================================================
+       SIGNAL COLLECTION
+       ============================================================ */
 
-    function collectSignals(
-        domains
-    ) {
+    function collectSignals(domains) {
         const signals = [];
 
-        Object.keys(
-            domains
-        ).forEach(
-            domain => {
-                const data =
-                    domains[
-                        domain
-                    ];
+        Object.keys(domains || {}).forEach(function (domain) {
+            const source = domains[domain];
 
-                if (
-                    !data
-                ) {
-                    return;
+            extractArray(source, [
+                "signals",
+                "keySignals",
+                "indicators"
+            ]).forEach(function (signal) {
+                if (typeof signal === "string") {
+                    signals.push({
+                        domain: domain,
+                        text: signal
+                    });
+                } else {
+                    signals.push(
+                        Object.assign(
+                            {
+                                domain: domain
+                            },
+                            clone(signal)
+                        )
+                    );
                 }
+            });
+        });
 
-                extractArray(
-                    data,
-                    [
-                        "signals",
-                        "findings"
-                    ]
-                ).forEach(
-                    signal => {
-                        if (
-                            typeof signal ===
-                            "string"
-                        ) {
-                            signals.push(
-                                {
-                                    domain,
-
-                                    message:
-                                        signal
-                                }
-                            );
-                        } else {
-                            signals.push(
-                                Object.assign(
-                                    {
-                                        domain
-                                    },
-                                    signal
-                                )
-                            );
-                        }
-                    }
-                );
-            }
-        );
-
-        return limit(
+        return uniqueObjects(
             signals,
             config.maxSignals
         );
     }
 
-    function collectGaps(
-        domains
-    ) {
+    /* ============================================================
+       GAP COLLECTION
+       ============================================================ */
+
+    function collectGaps(domains) {
         const gaps = [];
 
-        Object.keys(
-            domains
-        ).forEach(
-            domain => {
-                const data =
-                    domains[
-                        domain
-                    ];
+        Object.keys(domains || {}).forEach(function (domain) {
+            const source = domains[domain];
 
-                if (
-                    !data
-                ) {
-                    return;
+            extractArray(source, [
+                "gaps",
+                "dataGaps",
+                "missingData"
+            ]).forEach(function (gap) {
+                if (typeof gap === "string") {
+                    gaps.push({
+                        domain: domain,
+                        text: gap
+                    });
+                } else {
+                    gaps.push(
+                        Object.assign(
+                            {
+                                domain: domain
+                            },
+                            clone(gap)
+                        )
+                    );
                 }
+            });
+        });
 
-                extractArray(
-                    data,
-                    [
-                        "gaps",
-                        "dataGaps"
-                    ]
-                ).forEach(
-                    gap => {
-                        if (
-                            typeof gap ===
-                            "string"
-                        ) {
-                            gaps.push(
-                                {
-                                    domain,
-
-                                    message:
-                                        gap
-                                }
-                            );
-                        } else {
-                            gaps.push(
-                                Object.assign(
-                                    {
-                                        domain
-                                    },
-                                    gap
-                                )
-                            );
-                        }
-                    }
-                );
-            }
-        );
-
-        return limit(
+        return uniqueObjects(
             gaps,
             config.maxGaps
         );
     }
 
-    function collectTradeoffs(
-        domains
-    ) {
+    /* ============================================================
+       TRADEOFF COLLECTION
+       ============================================================ */
+
+    function collectTradeoffs(domains) {
         const tradeoffs = [];
 
-        Object.keys(
-            domains
-        ).forEach(
-            domain => {
-                const data =
-                    domains[
-                        domain
-                    ];
+        Object.keys(domains || {}).forEach(function (domain) {
+            const source = domains[domain];
 
-                if (
-                    !data
-                ) {
-                    return;
+            extractArray(source, [
+                "tradeoffs",
+                "tradeOffs",
+                "considerations"
+            ]).forEach(function (tradeoff) {
+                if (typeof tradeoff === "string") {
+                    tradeoffs.push({
+                        domain: domain,
+                        text: tradeoff
+                    });
+                } else {
+                    tradeoffs.push(
+                        Object.assign(
+                            {
+                                domain: domain
+                            },
+                            clone(tradeoff)
+                        )
+                    );
                 }
+            });
+        });
 
-                extractArray(
-                    data,
-                    [
-                        "tradeoffs",
-                        "tradeOffs"
-                    ]
-                ).forEach(
-                    tradeoff => {
-                        if (
-                            typeof tradeoff ===
-                            "string"
-                        ) {
-                            tradeoffs.push(
-                                {
-                                    domain,
-
-                                    message:
-                                        tradeoff
-                                }
-                            );
-                        } else {
-                            tradeoffs.push(
-                                Object.assign(
-                                    {
-                                        domain
-                                    },
-                                    tradeoff
-                                )
-                            );
-                        }
-                    }
-                );
-            }
-        );
-
-        return limit(
+        return uniqueObjects(
             tradeoffs,
             config.maxTradeoffs
         );
     }
 
-    /* ======================================================
-       ACTIONS
-    ====================================================== */
+    /* ============================================================
+       ACTION BUILDER
+       ============================================================ */
 
     function buildActions(
-        domains,
-        gaps = [],
-        options = {}
+        plan,
+        signals,
+        gaps,
+        tradeoffs
     ) {
         const actions = [];
 
-        Object.keys(
-            domains
-        ).forEach(
-            domain => {
-                const data =
-                    domains[
-                        domain
-                    ];
-
-                if (
-                    !data
-                ) {
-                    return;
-                }
-
-                extractArray(
-                    data,
-                    [
-                        "actions",
-                        "nextActions"
-                    ]
-                ).forEach(
-                    action => {
-                        if (
-                            typeof action ===
-                            "string"
-                        ) {
-                            actions.push(
-                                {
-                                    domain,
-
-                                    action
-                                }
-                            );
-                        } else {
-                            actions.push(
-                                Object.assign(
-                                    {
-                                        domain
-                                    },
-                                    action
-                                )
-                            );
-                        }
-                    }
-                );
-            }
-        );
-
-        if (
-            options.includeGapActions !==
-            false
-        ) {
-            gaps.forEach(
-                gap => {
-                    const message =
-                        safeString(
-                            gap.message ||
-                            gap.action
-                        );
-
-                    if (
-                        message
-                    ) {
-                        actions.push(
-                            {
-                                type:
-                                    "data-gap",
-
-                                domain:
-                                    gap.domain,
-
-                                priority:
-                                    gap.severity ||
-                                    "medium",
-
-                                action:
-                                    `Resolve data gap: ${message}`
-                            }
-                        );
-                    }
-                }
-            );
+        if (!state.location) {
+            actions.push({
+                priority: "high",
+                action: "Set a target location before making a location-specific decision.",
+                reason: "The advisor needs a geography to connect the intelligence layers."
+            });
         }
 
-        return limit(
+        if (!state.preferences ||
+            Object.keys(state.preferences).length === 0) {
+            actions.push({
+                priority: "medium",
+                action: "Add decision priorities such as affordability, climate, risk, business, housing, or incentives.",
+                reason: "Preference data makes the analysis more relevant to the user's actual goals."
+            });
+        }
+
+        if (gaps.length) {
+            actions.push({
+                priority: "medium",
+                action: "Verify the missing or incomplete data before making a final decision.",
+                reason: "The current analysis contains information gaps."
+            });
+        }
+
+        if (
+            plan.intent === INTENTS.INCENTIVES
+        ) {
+            actions.push({
+                priority: "high",
+                action: "Verify program eligibility, deadlines, funding availability, and current program rules.",
+                reason: "Program matching is not a guarantee of eligibility or funding."
+            });
+        }
+
+        if (
+            plan.intent === INTENTS.PROPERTY
+        ) {
+            actions.push({
+                priority: "high",
+                action: "Validate property-level financial assumptions before committing capital.",
+                reason: "Property outcomes depend on actual acquisition, financing, rehab, holding, and exit costs."
+            });
+        }
+
+        if (
+            plan.intent === INTENTS.BUSINESS
+        ) {
+            actions.push({
+                priority: "high",
+                action: "Validate current business programs, financing terms, workforce conditions, and local requirements.",
+                reason: "Business opportunity data can change over time."
+            });
+        }
+
+        if (
+            plan.intent === INTENTS.RISK
+        ) {
+            actions.push({
+                priority: "high",
+                action: "Separate long-term hazard exposure from current weather conditions and active alerts.",
+                reason: "Risk and current weather answer different questions."
+            });
+        }
+
+        if (
+            signals.length &&
+            actions.length < config.maxActions
+        ) {
+            actions.push({
+                priority: "low",
+                action: "Use the strongest signals as the starting point for deeper research.",
+                reason: "Signals identify areas that deserve further validation."
+            });
+        }
+
+        if (
+            tradeoffs.length &&
+            actions.length < config.maxActions
+        ) {
+            actions.push({
+                priority: "medium",
+                action: "Review the tradeoffs before making a location decision.",
+                reason: "Location decisions generally involve competing priorities."
+            });
+        }
+
+        return uniqueObjects(
             actions,
             config.maxActions
         );
     }
 
-    /* ======================================================
-       SOURCES
-    ====================================================== */
+    /* ============================================================
+       SOURCE COLLECTION
+       ============================================================ */
 
-    function collectSources(
-        domains
-    ) {
+    function collectSources(domains) {
         const sources = [];
 
-        Object.keys(
-            domains
-        ).forEach(
-            domain => {
-                const data =
-                    domains[
-                        domain
-                    ];
+        Object.keys(domains || {}).forEach(function (domain) {
+            const source = domains[domain];
 
-                if (
-                    !data
-                ) {
-                    return;
+            extractArray(source, [
+                "sources",
+                "references",
+                "sourceList"
+            ]).forEach(function (item) {
+                if (typeof item === "string") {
+                    sources.push({
+                        domain: domain,
+                        source: item
+                    });
+                } else {
+                    sources.push(
+                        Object.assign(
+                            {
+                                domain: domain
+                            },
+                            clone(item)
+                        )
+                    );
                 }
-
-                extractArray(
-                    data,
-                    [
-                        "sources",
-                        "source",
-                        "references"
-                    ]
-                ).forEach(
-                    source => {
-                        sources.push(
-                            typeof source ===
-                            "string"
-                                ? {
-                                    domain,
-                                    source
-                                }
-                                : Object.assign(
-                                    {
-                                        domain
-                                    },
-                                    source
-                                )
-                        );
-                    }
-                );
-            }
-        );
+            });
+        });
 
         return uniqueObjects(
-            sources
+            sources,
+            config.maxSources
         );
     }
 
-    function uniqueObjects(
-        values
-    ) {
-        const seen =
-            new Set();
-
-        const output =
-            [];
-
-        array(
-            values
-        ).forEach(
-            value => {
-                let key;
-
-                try {
-                    key =
-                        JSON.stringify(
-                            value
-                        );
-                } catch (
-                    error
-                ) {
-                    key =
-                        String(
-                            value
-                        );
-                }
-
-                if (
-                    seen.has(
-                        key
-                    )
-                ) {
-                    return;
-                }
-
-                seen.add(
-                    key
-                );
-
-                output.push(
-                    value
-                );
-            }
-        );
-
-        return output;
-    }
-
-    /* ======================================================
+    /* ============================================================
        SUMMARY
-    ====================================================== */
+       ============================================================ */
 
     function buildSummary(
-        location,
         plan,
         signals,
         tradeoffs,
-        gaps,
-        actions
+        gaps
     ) {
-        const locationLabel =
-            formatLocation(
-                location
+        const locationName =
+            state.location &&
+            (
+                state.location.name ||
+                state.location.city ||
+                state.location.state ||
+                state.location.zip
             );
 
-        const parts = [];
+        let summary =
+            "RO’Lyfe is analyzing the selected location across " +
+            plan.domains.length +
+            " intelligence layer" +
+            (plan.domains.length === 1 ? "" : "s") +
+            ".";
 
-        parts.push(
-            `RO’Lyfe analyzed ${locationLabel} using the ${plan.intent} decision path.`
-        );
-
-        if (
-            plan.domains.length
-        ) {
-            parts.push(
-                `Active intelligence layers: ${plan.domains.join(
-                    ", "
-                )}.`
-            );
+        if (locationName) {
+            summary =
+                "RO’Lyfe analyzed " +
+                text(locationName) +
+                " across " +
+                plan.domains.length +
+                " intelligence layers.";
         }
 
-        if (
-            signals.length
-        ) {
-            parts.push(
-                `${signals.length} intelligence signal(s) were identified.`
-            );
+        if (signals.length) {
+            summary +=
+                " The analysis identified " +
+                signals.length +
+                " signal" +
+                (signals.length === 1 ? "" : "s") +
+                ".";
         }
 
-        if (
-            tradeoffs.length
-        ) {
-            parts.push(
-                `${tradeoffs.length} tradeoff(s) should be examined.`
-            );
+        if (tradeoffs.length) {
+            summary +=
+                " There are " +
+                tradeoffs.length +
+                " tradeoff" +
+                (tradeoffs.length === 1 ? "" : "s") +
+                " to consider.";
         }
 
-        if (
-            gaps.length
-        ) {
-            parts.push(
-                `${gaps.length} information gap(s) remain.`
-            );
+        if (gaps.length) {
+            summary +=
+                " " +
+                gaps.length +
+                " data gap" +
+                (gaps.length === 1 ? "" : "s") +
+                " should be verified.";
         }
 
-        if (
-            actions.length
-        ) {
-            parts.push(
-                `${actions.length} next action(s) are available.`
-            );
-        }
-
-        return parts.join(
-            " "
-        );
+        return summary;
     }
 
-    /* ======================================================
+    /* ============================================================
        ADVISOR CONTEXT
-    ====================================================== */
+       ============================================================ */
 
-    function buildAdvisorContext(
-        question = "",
-        options = {}
-    ) {
-        const plan =
-            options.plan ||
-            buildResponsePlan(
-                question,
-                options
-            );
+    function buildAdvisorContext(plan) {
+        const domains = collectDomainContext(plan);
 
-        const domains =
-            options.domains ||
-            collectDomainContext(
-                plan,
-                options
-            );
+        const signals = collectSignals(domains);
 
-        const signals =
-            collectSignals(
-                domains
-            );
+        const gaps = collectGaps(domains);
 
-        const gaps =
-            config.includeGaps
-                ? collectGaps(
-                    domains
-                )
-                : [];
+        const tradeoffs = collectTradeoffs(domains);
 
-        const tradeoffs =
-            config.includeTradeoffs
-                ? collectTradeoffs(
-                    domains
-                )
-                : [];
+        const actions = buildActions(
+            plan,
+            signals,
+            gaps,
+            tradeoffs
+        );
 
-        const actions =
-            config.includeActions
-                ? buildActions(
-                    domains,
-                    gaps,
-                    options
-                )
-                : [];
+        const sources = collectSources(domains);
 
-        const sources =
-            config.includeSources
-                ? collectSources(
-                    domains
-                )
-                : [];
-
-        const summary =
-            buildSummary(
-                state.location,
-                plan,
-                signals,
-                tradeoffs,
-                gaps,
-                actions
-            );
+        const summary = buildSummary(
+            plan,
+            signals,
+            tradeoffs,
+            gaps
+        );
 
         const context = {
-            location:
-                clone(
-                    state.location
-                ),
+            location: clone(state.location),
 
-            preferences:
-                clone(
-                    state.preferences
-                ),
+            preferences: clone(state.preferences),
 
-            plan:
-                clone(
-                    plan
-                ),
+            plan: clone(plan),
 
-            domains:
-                clone(
-                    domains
-                ),
+            domains: domains,
 
-            signals:
-                clone(
-                    signals
-                ),
+            signals: signals,
 
-            findings:
-                clone(
-                    signals
-                ),
+            findings: [],
 
-            tradeoffs:
-                clone(
-                    tradeoffs
-                ),
+            tradeoffs: tradeoffs,
 
-            gaps:
-                clone(
-                    gaps
-                ),
+            gaps: gaps,
 
-            actions:
-                clone(
-                    actions
-                ),
+            actions: actions,
 
-            sources:
-                clone(
-                    sources
-                ),
+            sources: sources,
 
-            summary,
+            summary: summary,
 
-            generatedAt:
-                now()
+            collectedAt: now(),
+
+            guardrails: [
+                "Do not declare a universal best location.",
+                "Use user preferences when interpreting fit.",
+                "Distinguish long-term climate from current weather.",
+                "Distinguish hazard exposure from active events.",
+                "Do not invent missing data.",
+                "Identify relevant geography and time period.",
+                "Verify incentive eligibility and funding availability.",
+                "Do not treat a program match as a guarantee.",
+                "Explain tradeoffs rather than hiding them.",
+                "Property analysis must use actual property-level assumptions."
+            ]
         };
 
-        state.context =
-            clone(
-                context
-            );
+        state.context = context;
 
-        state.actions =
-            clone(
-                actions
-            );
+        emit("contextBuilt", clone(context));
 
-        state.metadata.updatedAt =
-            now();
+        emitStateChanged("context_built");
 
-        emit(
-            "contextBuilt",
-            {
-                context:
-                    clone(
-                        context
-                    )
-            }
-        );
-
-        persist();
-
-        return clone(
-            context
-        );
+        return clone(context);
     }
 
-    /* ======================================================
-       INSTRUCTIONS
-    ====================================================== */
+    /* ============================================================
+       AI INSTRUCTIONS
+       ============================================================ */
 
-    function buildInstructions(
-        options = {}
-    ) {
+    function buildInstructions() {
         return [
-            "You are the RO’Lyfe Relocation Intelligence Advisor.",
-
-            "Interpret structured intelligence rather than inventing data.",
-
-            "Use the user's stated priorities.",
-
-            "Do not assume a universal best location.",
-
-            "Distinguish facts, calculated signals, estimates, and missing data.",
-
-            "Distinguish climate from current weather.",
-
-            "Distinguish hazard exposure from active weather events.",
-
-            "Do not treat program matches as guaranteed eligibility or funding.",
-
-            "Explain important tradeoffs.",
-
-            "Identify missing information.",
-
-            "Use the generated actions to identify practical next steps.",
-
-            "For property analysis, do not represent estimated returns as guaranteed.",
-
-            "For business analysis, distinguish current economic data from forecasts.",
-
-            "For housing analysis, distinguish market statistics from individual affordability.",
-
-            "The final decision remains with the user."
-        ].join(
-            "\n"
-        );
+            "You are the RO’Lyfe Location Intelligence Advisor.",
+            "Your role is to help interpret structured location intelligence.",
+            "Do not declare a universal best place to live, invest, or build.",
+            "Use the user's stated priorities and constraints.",
+            "Explain documented differences and tradeoffs.",
+            "Do not invent missing data.",
+            "Identify geography and time period when relevant.",
+            "Separate climate from weather.",
+            "Separate hazard exposure from active weather events.",
+            "Treat incentives as potential matches, not guarantees.",
+            "Tell the user when eligibility or funding must be verified.",
+            "For property analysis, distinguish assumptions from verified facts.",
+            "For business analysis, distinguish opportunity signals from guaranteed outcomes.",
+            "Use concise, practical decision-support language."
+        ].join(" ");
     }
 
-    /* ======================================================
-       RESPONSE TEMPLATE
-    ====================================================== */
+    /* ============================================================
+       FOLLOW-UP QUESTIONS
+       ============================================================ */
 
     function buildFollowUpQuestions(
         plan,
@@ -2509,1320 +1740,703 @@ SECURITY:
     ) {
         const questions = [];
 
-        switch (
-            plan.intent
-        ) {
+        switch (plan.intent) {
             case INTENTS.RELOCATION:
                 questions.push(
-                    "What is your monthly housing budget?",
-                    "Which climate conditions matter most to you?",
-                    "How important is lower disaster risk?",
-                    "Are you prioritizing employment, business, or real estate opportunity?"
-                );
-                break;
-
-            case INTENTS.HOUSING:
-                questions.push(
-                    "Are you looking to rent or buy?",
-                    "What monthly housing payment fits your budget?",
-                    "What property type are you considering?"
-                );
-                break;
-
-            case INTENTS.BUSINESS:
-                questions.push(
-                    "What type of business are you building?",
-                    "Are you starting, expanding, or relocating?",
-                    "How important are grants, loans, or tax incentives?"
-                );
-                break;
-
-            case INTENTS.PROPERTY:
-                questions.push(
-                    "What is the purchase price?",
-                    "What is your estimated ARV?",
-                    "What is the rehab budget?",
-                    "What exit strategy are you considering?"
-                );
-                break;
-
-            case INTENTS.RISK:
-                questions.push(
-                    "Which hazard concerns you most?",
-                    "Are you evaluating the location for living, business, or property?"
+                    "What monthly housing budget should I use?",
+                    "Should climate or lower hazard exposure carry more weight?",
+                    "Are you moving for lifestyle, work, business, or investment?"
                 );
                 break;
 
             case INTENTS.COMPARE:
                 questions.push(
                     "Which two or more locations should be compared?",
-                    "What factors should receive the most weight?"
+                    "What matters most: housing cost, climate, risk, business, or incentives?"
+                );
+                break;
+
+            case INTENTS.HOUSING:
+                questions.push(
+                    "Are you looking to rent or buy?",
+                    "What monthly housing budget should be used?"
+                );
+                break;
+
+            case INTENTS.BUSINESS:
+                questions.push(
+                    "What type of business are you evaluating?",
+                    "Are you looking for startup funding, incentives, customers, workforce, or operating cost advantages?"
+                );
+                break;
+
+            case INTENTS.PROPERTY:
+                questions.push(
+                    "What is the property purchase price?",
+                    "What is the expected ARV or current market value?",
+                    "What are the estimated rehab and financing costs?"
+                );
+                break;
+
+            case INTENTS.RISK:
+                questions.push(
+                    "Which hazards matter most to you?",
+                    "Are you evaluating long-term exposure or current conditions?"
+                );
+                break;
+
+            case INTENTS.INCENTIVES:
+                questions.push(
+                    "Are you looking for homeowner, relocation, business, or development incentives?",
+                    "What state, county, city, or ZIP should be evaluated?"
                 );
                 break;
 
             default:
                 questions.push(
-                    "What decision are you trying to make?",
-                    "Which factors matter most to you?"
+                    "What location are you evaluating?",
+                    "What matters most in your decision?"
                 );
+                break;
         }
 
-        return limit(
-            questions,
-            config.maxQuestions
-        );
+        return unique(
+            questions.filter(Boolean)
+        ).slice(0, 6);
     }
 
-    function getSectionContent(
-        section,
-        context
-    ) {
-        switch (
-            section
-        ) {
-            case "location":
-                return context.location;
+    /* ============================================================
+       SECTION BUILDER
+       ============================================================ */
 
-            case "climate":
-                return context.domains.climate;
-
-            case "weather":
-                return context.domains.weather;
-
-            case "risk":
-                return context.domains.risk;
-
-            case "housing":
-                return context.domains.housing;
-
-            case "costOfLiving":
-                return context.domains.costOfLiving;
-
-            case "incentives":
-                return context.domains.incentives;
-
-            case "business":
-                return context.domains.business;
-
-            case "property":
-                return context.domains.property;
-
-            case "opportunity":
-                return context.domains.opportunity;
-
-            case "comparison":
-            case "tradeoffs":
-                return context.tradeoffs;
-
-            case "gaps":
-                return context.gaps;
-
-            case "nextSteps":
-                return context.actions;
-
-            case "signals":
-                return context.signals;
-
-            default:
-                return null;
-        }
-    }
-
-    function buildLocalSections(
+    function buildResponseSections(
         plan,
         context
     ) {
-        return plan.sections.map(
-            section => ({
-                id:
-                    section,
+        return {
+            summary: context.summary,
 
-                title:
-                    formatSectionTitle(
-                        section
-                    ),
+            signals: context.signals,
 
-                content:
-                    clone(
-                        getSectionContent(
-                            section,
-                            context
-                        )
-                    )
-            })
-        );
-    }
+            tradeoffs: context.tradeoffs,
 
-    function formatSectionTitle(
-        section
-    ) {
-        const labels = {
-            location:
-                "Location",
+            gaps: context.gaps,
 
-            climate:
-                "Climate",
+            actions: context.actions,
 
-            weather:
-                "Current Weather",
-
-            risk:
-                "Risk",
-
-            housing:
-                "Housing",
-
-            costOfLiving:
-                "Cost of Living",
-
-            incentives:
-                "Incentives",
-
-            business:
-                "Business",
-
-            property:
-                "Property",
-
-            opportunity:
-                "Opportunity",
-
-            comparison:
-                "Comparison",
-
-            tradeoffs:
-                "Tradeoffs",
-
-            gaps:
-                "Information Gaps",
-
-            signals:
-                "Key Signals",
-
-            nextSteps:
-                "Next Steps"
+            sources: context.sources
         };
-
-        return (
-            labels[
-                section
-            ] ||
-            section
-        );
     }
 
-    /* ======================================================
-       LOCAL RESPONSE
-    ====================================================== */
+    /* ============================================================
+       LOCAL RESPONSE ENGINE
+       ============================================================ */
 
-    function buildLocalDirectAnswer(
+    function generateLocalResponse(
         question,
         plan,
         context
     ) {
-        const locationLabel =
-            formatLocation(
-                context.location
-            );
+        const sections = buildResponseSections(
+            plan,
+            context
+        );
 
-        const firstSignal =
-            context.signals[0];
+        let directAnswer = context.summary;
 
-        let answer =
-            `Based on the available RO’Lyfe intelligence, ${locationLabel} is being analyzed through the ${plan.intent} lens.`;
-
-        if (
-            firstSignal &&
-            firstSignal.message
-        ) {
-            answer +=
-                ` One notable signal is: ${firstSignal.message}`;
+        if (!state.location) {
+            directAnswer =
+                "I can analyze the location, but I need a target location first.";
         }
 
         if (
-            context.gaps.length
+            state.location &&
+            plan.intent === INTENTS.RELOCATION
         ) {
-            answer +=
-                ` There is still information to verify before making a location decision.`;
+            directAnswer =
+                "I can evaluate this location for relocation using housing, climate, weather, risk, incentives, business, and opportunity data. The fit should be interpreted against your priorities rather than as a universal ranking.";
         }
 
-        return answer;
-    }
+        if (
+            plan.intent === INTENTS.COMPARE
+        ) {
+            directAnswer =
+                "I can compare locations across the selected intelligence layers and show where the differences and tradeoffs appear.";
+        }
 
-    function generateLocalResponse(
-        question = "",
-        options = {}
-    ) {
-        const context =
-            options.context ||
-            buildAdvisorContext(
-                question,
-                options
-            );
+        if (
+            plan.intent === INTENTS.PROPERTY
+        ) {
+            directAnswer =
+                "I can connect property-level information with location, housing, risk, business, and opportunity intelligence. Property financial assumptions should be verified before capital is committed.";
+        }
 
-        const plan =
-            context.plan;
-
-        const followUpQuestions =
-            buildFollowUpQuestions(
-                plan,
-                context
-            );
-
-        const directAnswer =
-            buildLocalDirectAnswer(
-                question,
-                plan,
-                context
-            );
+        if (
+            plan.intent === INTENTS.BUSINESS
+        ) {
+            directAnswer =
+                "I can evaluate the business environment using economic, industry, workforce, incentive, housing, and opportunity signals. Program matches are not guarantees of eligibility or funding.";
+        }
 
         const response = {
-            mode:
-                "local",
+            version: VERSION,
 
-            title:
-                `RO’Lyfe ${formatIntent(
-                    plan.intent
-                )} Analysis`,
+            mode: "local",
 
-            directAnswer,
+            title: "RO’Lyfe Location Intelligence",
 
-            summary:
-                context.summary,
+            question: question,
 
-            sections:
-                buildLocalSections(
+            intent: plan.intent,
+
+            modeType: plan.mode,
+
+            directAnswer: directAnswer,
+
+            summary: context.summary,
+
+            sections: sections,
+
+            signals: context.signals,
+
+            tradeoffs: context.tradeoffs,
+
+            gaps: context.gaps,
+
+            actions: context.actions,
+
+            followUpQuestions:
+                buildFollowUpQuestions(
                     plan,
                     context
                 ),
 
-            signals:
-                clone(
-                    context.signals
-                ),
-
-            tradeoffs:
-                clone(
-                    context.tradeoffs
-                ),
-
-            gaps:
-                clone(
-                    context.gaps
-                ),
-
-            actions:
-                clone(
-                    context.actions
-                ),
-
-            followUpQuestions,
-
-            sources:
-                clone(
-                    context.sources
-                ),
-
             disclaimer:
-                "RO’Lyfe intelligence is decision-support information. Verify current data, eligibility, costs, risks, property facts, and program requirements before acting.",
+                "RO’Lyfe provides informational decision support. Data, incentives, financing terms, property assumptions, and program eligibility should be independently verified before making financial, real-estate, relocation, or business decisions.",
 
-            text:
-                buildPlainTextResponse(
-                    directAnswer,
-                    context,
-                    followUpQuestions
-                ),
+            instructions: buildInstructions(),
 
-            context:
-                clone(
-                    context
-                )
+            generatedAt: now()
         };
 
-        state.response =
-            clone(
-                response
-            );
+        state.response = response;
 
         emit(
             "responseBuilt",
-            {
-                response:
-                    clone(
-                        response
-                    )
-            }
+            clone(response)
         );
 
-        persist();
+        emitStateChanged("response_built");
 
-        return clone(
-            response
-        );
+        return clone(response);
     }
 
-    function buildPlainTextResponse(
-        directAnswer,
-        context,
-        followUpQuestions
-    ) {
-        const lines = [
-            directAnswer,
-            "",
-            context.summary
-        ];
-
-        if (
-            context.signals.length
-        ) {
-            lines.push(
-                "",
-                "Key signals:"
-            );
-
-            context.signals
-                .slice(
-                    0,
-                    6
-                )
-                .forEach(
-                    signal => {
-                        const message =
-                            safeString(
-                                signal.message ||
-                                signal.title ||
-                                signal.text
-                            );
-
-                        if (
-                            message
-                        ) {
-                            lines.push(
-                                `• ${message}`
-                            );
-                        }
-                    }
-                );
-        }
-
-        if (
-            context.tradeoffs.length
-        ) {
-            lines.push(
-                "",
-                "Tradeoffs:"
-            );
-
-            context.tradeoffs
-                .slice(
-                    0,
-                    5
-                )
-                .forEach(
-                    tradeoff => {
-                        const message =
-                            safeString(
-                                tradeoff.message ||
-                                tradeoff.title ||
-                                tradeoff.text
-                            );
-
-                        if (
-                            message
-                        ) {
-                            lines.push(
-                                `• ${message}`
-                            );
-                        }
-                    }
-                );
-        }
-
-        if (
-            context.gaps.length
-        ) {
-            lines.push(
-                "",
-                "Information gaps:"
-            );
-
-            context.gaps
-                .slice(
-                    0,
-                    5
-                )
-                .forEach(
-                    gap => {
-                        const message =
-                            safeString(
-                                gap.message ||
-                                gap.title ||
-                                gap.text
-                            );
-
-                        if (
-                            message
-                        ) {
-                            lines.push(
-                                `• ${message}`
-                            );
-                        }
-                    }
-                );
-        }
-
-        if (
-            context.actions.length
-        ) {
-            lines.push(
-                "",
-                "Next actions:"
-            );
-
-            context.actions
-                .slice(
-                    0,
-                    6
-                )
-                .forEach(
-                    action => {
-                        const message =
-                            safeString(
-                                action.action ||
-                                action.message ||
-                                action.title
-                            );
-
-                        if (
-                            message
-                        ) {
-                            lines.push(
-                                `• ${message}`
-                            );
-                        }
-                    }
-                );
-        }
-
-        if (
-            followUpQuestions.length
-        ) {
-            lines.push(
-                "",
-                "You may also want to ask:"
-            );
-
-            followUpQuestions
-                .slice(
-                    0,
-                    4
-                )
-                .forEach(
-                    question => {
-                        lines.push(
-                            `• ${question}`
-                        );
-                    }
-                );
-        }
-
-        return lines.join(
-            "\n"
-        );
-    }
-
-    function formatIntent(
-        intent
-    ) {
-        return safeString(
-            intent,
-            "general"
-        )
-            .replace(
-                /_/g,
-                " "
-            )
-            .replace(
-                /\b\w/g,
-                letter =>
-                    letter.toUpperCase()
-            );
-    }
-
-    /* ======================================================
+    /* ============================================================
        ANALYZE
-    ====================================================== */
+       ============================================================ */
 
-    function analyze(
-        options = {}
-    ) {
-        const question =
-            safeString(
-                options.question ||
-                state.lastQuestion
-            );
+    function analyze(question, options) {
+        options = options || {};
 
-        state.status =
-            "analyzing";
+        const q = text(question).trim();
 
-        state.metadata.requestCount +=
-            question
-                ? 1
-                : 0;
+        state.status = "analyzing";
 
-        if (
-            options.location
-        ) {
-            setLocation(
-                options.location
-            );
+        state.lastQuestion = q;
+
+        state.metadata.analysisCount += 1;
+
+        if (options.location) {
+            setLocation(options.location);
         }
 
-        if (
-            options.preferences
-        ) {
-            setPreferences(
-                options.preferences
-            );
+        if (options.preferences) {
+            setPreferences(options.preferences);
         }
 
-        const plan =
-            buildResponsePlan(
-                question,
-                options
-            );
+        const plan = buildResponsePlan(q);
 
-        const domains =
-            collectDomainContext(
-                plan,
-                options
-            );
+        const context = buildAdvisorContext(plan);
 
-        const context =
-            buildAdvisorContext(
-                question,
-                Object.assign(
-                    {},
-                    options,
-                    {
-                        plan,
-                        domains
-                    }
-                )
-            );
+        const response = generateLocalResponse(
+            q,
+            plan,
+            context
+        );
 
-        state.status =
-            "ready";
+        state.status = "ready";
 
-        state.metadata.updatedAt =
-            now();
+        state.metadata.updatedAt = now();
 
         persist();
 
-        emit(
-            "analysisComplete",
-            {
-                plan:
-                    clone(
-                        plan
-                    ),
+        emitStateChanged("analysis_complete");
 
-                context:
-                    clone(
-                        context
-                    )
-            }
-        );
-
-        return {
-            plan:
-                clone(
-                    plan
-                ),
-
-            context:
-                clone(
-                    context
-                )
-        };
+        return clone(response);
     }
 
-    /* ======================================================
-       ASK / ANSWER
-    ====================================================== */
+    /* ============================================================
+       ASK
+       ============================================================ */
 
-    function ask(
-        question = "",
-        options = {}
-    ) {
-        const q =
-            safeString(
-                question
-            );
+    function ask(question, options) {
+        options = options || {};
 
-        if (
-            !q
-        ) {
+        const q = text(question).trim();
+
+        if (!q) {
             return generateLocalResponse(
-                "Analyze the selected location.",
-                options
+                "",
+                state.plan,
+                state.context
             );
         }
 
-        /*
-            IMPORTANT:
-            Advisor no longer delegates to AI.JS.
+        state.metadata.questionCount += 1;
 
-            This prevents:
-
-                AI.JS
-                  ↓
-                Advisor
-                  ↓
-                AI.JS
-                  ↓
-                Advisor
-                  ↓
-                recursion
-
-            AI.JS may call Advisor.analyze()
-            or Advisor.ask() as a local/context
-            provider.
-        */
-
-        const analysis =
-            analyze(
-                Object.assign(
-                    {},
-                    options,
-                    {
-                        question:
-                            q
-                    }
-                )
-            );
-
-        const response =
-            generateLocalResponse(
-                q,
-                Object.assign(
-                    {},
-                    options,
-                    {
-                        context:
-                            analysis.context
-                    }
-                )
-            );
-
-        addHistory(
-            "user",
-            q
+        const response = analyze(
+            q,
+            options
         );
 
-        addHistory(
-            "assistant",
-            response.text,
-            {
-                response
-            }
-        );
+        addHistory({
+            question: q,
 
-        state.response =
-            clone(
-                response
-            );
+            response: clone(response),
 
-        state.metadata.updatedAt =
-            now();
+            intent: state.lastIntent,
 
-        persist();
+            mode: state.lastMode,
+
+            location: clone(state.location),
+
+            timestamp: now()
+        });
 
         return response;
     }
 
-    function answer(
-        question = "",
-        options = {}
-    ) {
-        return ask(
-            question,
-            options
-        );
+    /* ============================================================
+       ANSWER ALIAS
+       ============================================================ */
+
+    function answer(question, options) {
+        return ask(question, options);
     }
 
-    /* ======================================================
+    /* ============================================================
        SPECIALIZED ANALYSIS
-    ====================================================== */
+       ============================================================ */
 
-    function analyzeRelocation(
-        options = {}
-    ) {
+    function analyzeRelocation(options) {
+        options = options || {};
+
         return analyze(
-            Object.assign(
-                {},
-                options,
-                {
-                    intent:
-                        INTENTS.RELOCATION
-                }
-            )
+            options.question ||
+            "Analyze this location for relocation.",
+            {
+                location:
+                    options.location ||
+                    state.location,
+
+                preferences:
+                    options.preferences ||
+                    state.preferences
+            }
         );
     }
 
-    function analyzeComparison(
-        options = {}
-    ) {
-        return analyze(
-            Object.assign(
-                {},
-                options,
-                {
-                    intent:
-                        INTENTS.COMPARE,
+    function analyzeComparison(options) {
+        options = options || {};
 
-                    mode:
-                        MODES.COMPARISON
-                }
-            )
+        return analyze(
+            options.question ||
+            "Compare these locations.",
+            {
+                location:
+                    options.location ||
+                    state.location,
+
+                preferences:
+                    options.preferences ||
+                    state.preferences
+            }
         );
     }
 
-    function analyzeProperty(
-        options = {}
-    ) {
-        return analyze(
-            Object.assign(
-                {},
-                options,
-                {
-                    intent:
-                        INTENTS.PROPERTY,
+    function analyzeProperty(options) {
+        options = options || {};
 
-                    mode:
-                        MODES.PROPERTY_CONTEXT
-                }
-            )
-        );
-    }
-
-    function analyzeBusiness(
-        options = {}
-    ) {
-        return analyze(
-            Object.assign(
-                {},
-                options,
-                {
-                    intent:
-                        INTENTS.BUSINESS,
-
-                    mode:
-                        MODES.BUSINESS_CONTEXT
-                }
-            )
-        );
-    }
-
-    function analyzeRisk(
-        options = {}
-    ) {
-        return analyze(
-            Object.assign(
-                {},
-                options,
-                {
-                    intent:
-                        INTENTS.RISK
-                }
-            )
-        );
-    }
-
-    /* ======================================================
-       AI CONTEXT
-    ====================================================== */
-
-    function buildAIContext(
-        question = "",
-        options = {}
-    ) {
-        const analysis =
-            analyze(
-                Object.assign(
-                    {},
-                    options,
-                    {
-                        question
-                    }
-                )
+        if (options.property) {
+            callModule(
+                "ROlyfePropertyAnalysis",
+                "setProperty",
+                options.property
             );
+        }
 
+        return analyze(
+            options.question ||
+            "Analyze this property in its location context.",
+            {
+                location:
+                    options.location ||
+                    state.location,
+
+                preferences:
+                    options.preferences ||
+                    state.preferences
+            }
+        );
+    }
+
+    function analyzeBusiness(options) {
+        options = options || {};
+
+        return analyze(
+            options.question ||
+            "Analyze the business opportunity in this location.",
+            {
+                location:
+                    options.location ||
+                    state.location,
+
+                preferences:
+                    options.preferences ||
+                    state.preferences
+            }
+        );
+    }
+
+    function analyzeRisk(options) {
+        options = options || {};
+
+        return analyze(
+            options.question ||
+            "Analyze the location risk profile.",
+            {
+                location:
+                    options.location ||
+                    state.location,
+
+                preferences:
+                    options.preferences ||
+                    state.preferences
+            }
+        );
+    }
+
+    /* ============================================================
+       AI CONTEXT
+       ============================================================ */
+
+    function buildAIContext() {
         return {
-            module:
-                MODULE_NAME,
-
-            version:
-                VERSION,
+            version: VERSION,
 
             role:
-                "advisor-context-and-decision-planning",
+                "RO’Lyfe Location Intelligence Advisor",
 
             instructions:
-                buildInstructions(
-                    options
-                ),
+                buildInstructions(),
 
             location:
-                clone(
-                    state.location
-                ),
+                clone(state.location),
 
             preferences:
-                clone(
-                    state.preferences
-                ),
+                clone(state.preferences),
 
             plan:
-                clone(
-                    analysis.plan
-                ),
+                clone(state.plan),
 
             context:
-                clone(
-                    analysis.context
-                ),
+                clone(state.context),
 
             response:
-                clone(
-                    state.response
-                ),
+                clone(state.response),
 
             history:
-                clone(
-                    state.history
-                ),
+                clone(state.history),
 
-            guardrails: [
-                "Do not invent missing data.",
-                "Do not declare a universal best location.",
-                "Use stated user priorities.",
-                "Explain tradeoffs.",
-                "Identify data gaps.",
-                "Verify current incentives and eligibility.",
-                "Distinguish climate from weather.",
-                "Distinguish hazard exposure from active events.",
-                "Treat property estimates as estimates.",
-                "Keep final decision authority with the user."
-            ],
-
-            generatedAt:
-                now()
+            generatedAt: now()
         };
     }
+
+    /* ============================================================
+       SHARED CONTEXT
+       ============================================================ */
 
     function buildSharedContext() {
         return {
-            module:
-                MODULE_NAME,
-
-            version:
-                VERSION,
-
-            status:
-                state.status,
+            advisor: buildAIContext(),
 
             location:
-                clone(
-                    state.location
-                ),
+                clone(state.location),
 
             preferences:
-                clone(
-                    state.preferences
-                ),
+                clone(state.preferences),
 
             plan:
-                clone(
-                    state.plan
-                ),
+                clone(state.plan),
 
             context:
-                clone(
-                    state.context
-                ),
-
-            response:
-                clone(
-                    state.response
-                ),
-
-            history:
-                clone(
-                    state.history
-                ),
-
-            metadata:
-                clone(
-                    state.metadata
-                )
+                clone(state.context)
         };
     }
 
-    /* ======================================================
+    /* ============================================================
        HISTORY
-    ====================================================== */
+       ============================================================ */
 
-    function addHistory(
-        role,
-        content,
-        metadata = {}
-    ) {
+    function addHistory(entry) {
+        state.history = array(state.history);
+
         state.history.push(
-            {
-                role:
-                    safeString(
-                        role
-                    ),
-
-                content:
-                    safeString(
-                        content
-                    ),
-
-                metadata:
-                    clone(
-                        metadata
-                    ),
-
-                timestamp:
-                    now()
-            }
+            clone(entry)
         );
 
         if (
             state.history.length >
-            20
+            config.maxHistory
         ) {
             state.history =
                 state.history.slice(
-                    -20
+                    -config.maxHistory
                 );
         }
-
-        return clone(
-            state.history
-        );
-    }
-
-    function getHistory() {
-        return clone(
-            state.history
-        );
-    }
-
-    function clearHistory() {
-        state.history =
-            [];
-
-        state.metadata.updatedAt =
-            now();
 
         persist();
 
         emit(
-            "historyCleared"
+            "historyChanged",
+            clone(state.history)
         );
 
-        return [];
+        emitStateChanged("history_changed");
     }
 
-    /* ======================================================
+    function getHistory() {
+        return clone(state.history);
+    }
+
+    function clearHistory() {
+        state.history = [];
+
+        persist();
+
+        emit(
+            "historyChanged",
+            []
+        );
+
+        emitStateChanged("history_cleared");
+
+        return true;
+    }
+
+    /* ============================================================
        CONFIGURATION
-    ====================================================== */
+       ============================================================ */
 
-    function configure(
-        options = {}
-    ) {
-        config =
-            Object.assign(
-                {},
-                config,
-                options
-            );
+    function configure(options) {
+        options = options || {};
 
-        state.config =
-            clone(
-                config
-            );
+        config = Object.assign(
+            {},
+            config,
+            options
+        );
 
-        state.metadata.updatedAt =
-            now();
+        state.config = clone(config);
+
+        state.metadata.updatedAt = now();
 
         persist();
 
         emit(
             "configured",
-            {
-                config:
-                    clone(
-                        config
-                    )
-            }
+            clone(config)
         );
 
-        return getConfig();
+        emitStateChanged("configured");
+
+        return clone(config);
     }
 
     function getConfig() {
-        return clone(
-            config
-        );
+        return clone(config);
     }
 
-    /* ======================================================
-       STATE / STATUS
-    ====================================================== */
+    /* ============================================================
+       STATUS
+       ============================================================ */
 
     function getState() {
-        return clone(
-            state
-        );
+        return clone(state);
     }
 
     function getStatus() {
         return {
-            module:
-                MODULE_NAME,
+            version: VERSION,
 
-            version:
-                VERSION,
+            status: state.status,
 
-            status:
-                state.status,
+            initialized: state.initialized,
 
-            initialized:
-                state.initialized,
+            location: clone(state.location),
 
-            location:
-                clone(
-                    state.location
-                ),
+            intent: state.lastIntent,
 
-            intent:
-                state.lastIntent,
-
-            mode:
-                state.lastMode,
+            mode: state.lastMode,
 
             domains:
-                clone(
-                    state.plan.domains
+                state.plan &&
+                state.plan.domains
+                    ? state.plan.domains.slice()
+                    : [],
+
+            historyCount:
+                array(state.history).length,
+
+            analysisCount:
+                number(
+                    state.metadata.analysisCount,
+                    0
                 ),
 
-            signalCount:
-                state.context.signals.length,
-
-            tradeoffCount:
-                state.context.tradeoffs.length,
-
-            gapCount:
-                state.context.gaps.length,
-
-            actionCount:
-                state.context.actions.length,
+            questionCount:
+                number(
+                    state.metadata.questionCount,
+                    0
+                ),
 
             updatedAt:
                 state.metadata.updatedAt
         };
     }
 
-    function getPlan() {
-        return clone(
-            state.plan
-        );
-    }
-
-    function getContext() {
-        return clone(
-            state.context
-        );
-    }
-
-    function getResponse() {
-        return clone(
-            state.response
-        );
-    }
-
     function getResult() {
         return clone(
             state.response ||
-            state.context
+            state.context ||
+            null
         );
     }
 
-    function getIntent() {
-        return state.lastIntent;
+    function getPlan() {
+        return clone(state.plan);
     }
 
-    function getMode() {
-        return state.lastMode;
+    function getContext() {
+        return clone(state.context);
     }
 
-    /* ======================================================
+    function getResponse() {
+        return clone(state.response);
+    }
+
+    /* ============================================================
        RESET
-    ====================================================== */
+       ============================================================ */
 
-    function reset(
-        options = {}
-    ) {
-        const keepLocation =
-            options.keepLocation !==
-            false;
+    function reset(options) {
+        options = options || {};
 
-        const keepPreferences =
-            options.keepPreferences !==
-            false;
+        const preserveLocation =
+            options.preserveLocation !== false;
 
-        const oldLocation =
-            clone(
-                state.location
-            );
+        const preservePreferences =
+            options.preservePreferences !== false;
 
-        const oldPreferences =
-            clone(
-                state.preferences
-            );
+        const preservedLocation =
+            preserveLocation
+                ? clone(state.location)
+                : null;
 
-        state =
-            createInitialState();
+        const preservedPreferences =
+            preservePreferences
+                ? clone(state.preferences)
+                : {};
 
-        if (
-            keepLocation
-        ) {
-            state.location =
-                oldLocation;
-        }
+        state = createInitialState();
 
-        if (
-            keepPreferences
-        ) {
-            state.preferences =
-                oldPreferences;
-        }
+        state.location =
+            preservedLocation;
 
-        state.metadata.createdAt =
-            now();
+        state.preferences =
+            preservedPreferences;
 
-        state.metadata.updatedAt =
-            now();
+        state.metadata.updatedAt = now();
 
-        if (
-            options.clearStorage
-        ) {
+        if (options.clearPersistence) {
             clearPersistence();
         } else {
             persist();
         }
 
         emit(
-            "reset"
+            "reset",
+            getState()
         );
+
+        emitStateChanged("reset");
 
         return getState();
     }
 
-    /* ======================================================
+    /* ============================================================
        SUBSCRIBE
-    ====================================================== */
+       ============================================================ */
 
     function subscribe(
         eventName,
         handler
     ) {
         /*
-            Compatibility modes:
-
-            subscribe(handler)
-
-            OR
-
-            subscribe(
-                "planCreated",
-                handler
-            )
-
-            The single-function form listens
-            to all advisor state events.
-        */
+         * Supports:
+         *
+         * subscribe(handler)
+         *
+         * subscribe("eventName", handler)
+         */
 
         if (
-            typeof eventName ===
-            "function"
+            typeof eventName === "function"
         ) {
-            const listener =
-                eventName;
+            handler = eventName;
 
-            listener.__rolyfeStateListener =
-                true;
-
-            listeners.push(
-                listener
-            );
-
-            return function unsubscribe() {
-                const index =
-                    listeners.indexOf(
-                        listener
-                    );
-
-                if (
-                    index !==
-                    -1
-                ) {
-                    listeners.splice(
-                        index,
-                        1
-                    );
-                }
-            };
+            eventName = "stateChanged";
         }
 
         if (
-            typeof handler !==
-                "function"
+            typeof handler !== "function"
         ) {
             return function () {};
         }
 
-        const wrapped =
-            event => {
-                if (
-                    event.event ===
-                    eventName
-                ) {
-                    handler(
-                        event
-                    );
-                }
-            };
+        if (
+            !listeners[eventName]
+        ) {
+            listeners[eventName] = [];
+        }
 
-        listeners.push(
-            wrapped
+        listeners[eventName].push(
+            handler
         );
 
         return function unsubscribe() {
-            const index =
-                listeners.indexOf(
-                    wrapped
-                );
+            const list =
+                listeners[eventName];
 
-            if (
-                index !==
-                -1
-            ) {
-                listeners.splice(
+            if (!list) {
+                return;
+            }
+
+            const index =
+                list.indexOf(handler);
+
+            if (index !== -1) {
+                list.splice(
                     index,
                     1
                 );
@@ -3830,65 +2444,110 @@ SECURITY:
         };
     }
 
-    /* ======================================================
+    /* ============================================================
        SERIALIZATION
-    ====================================================== */
+       ============================================================ */
 
     function serialize() {
         return JSON.stringify(
-            getState(),
+            {
+                version: VERSION,
+
+                state: clone(state),
+
+                config: clone(config)
+            },
             null,
             2
         );
     }
 
-    /* ======================================================
-       LOCATION FORMATTER
-    ====================================================== */
-
-    function formatLocation(
-        location
-    ) {
-        if (
-            !location
-        ) {
-            return "the selected location";
-        }
-
-        const parts = [
-            location.address,
-            location.city,
-            location.county,
-            location.stateName ||
-                location.state,
-            location.zip
-        ].filter(
-            Boolean
-        );
-
-        return parts.length
-            ? parts.join(
-                ", "
-            )
-            : "the selected location";
-    }
-
-    /* ======================================================
+    /* ============================================================
        INITIALIZATION
-    ====================================================== */
+       ============================================================ */
 
-    function initialize(
-        options = {}
-    ) {
-        configure(
-            options
-        );
+    function initialize(options) {
+        /*
+         * IMPORTANT v1.1.1 FIX
+         *
+         * Previous flow:
+         *
+         * initialize()
+         *    ↓
+         * configure()
+         *    ↓
+         * persist()
+         *    ↓
+         * restore()
+         *
+         * This could overwrite the previously saved state
+         * before restore() had a chance to read it.
+         *
+         * Correct flow:
+         *
+         * initialize()
+         *    ↓
+         * restore()
+         *    ↓
+         * apply explicit options
+         *    ↓
+         * persist()
+         *
+         * localStorage is specifically designed to persist
+         * data across page loads/browser sessions, so startup
+         * must never destroy the saved advisor state before
+         * restoration occurs.
+         */
 
-        if (
-            config.persist
-        ) {
+        options = options || {};
+
+        const requestedConfig =
+            clone(options);
+
+        /*
+         * STEP 1
+         * Restore persisted state FIRST.
+         */
+        if (config.persist) {
             restore();
         }
+
+        /*
+         * STEP 2
+         * Apply explicit initialization options AFTER
+         * persisted state has been restored.
+         *
+         * This lets a caller intentionally override saved
+         * configuration without destroying saved state first.
+         */
+        if (
+            Object.keys(
+                requestedConfig
+            ).length
+        ) {
+            config = Object.assign(
+                {},
+                config,
+                requestedConfig
+            );
+
+            state.config =
+                clone(config);
+        }
+
+        /*
+         * STEP 3
+         * Restore state metadata safely.
+         */
+        state.metadata =
+            Object.assign(
+                {},
+                createInitialState().metadata,
+                state.metadata || {}
+            );
+
+        state.metadata.version =
+            VERSION;
 
         state.metadata.createdAt =
             state.metadata.createdAt ||
@@ -3897,27 +2556,54 @@ SECURITY:
         state.metadata.updatedAt =
             now();
 
-        state.config =
-            clone(
-                config
-            );
+        state.metadata.lastInitializedAt =
+            now();
 
+        /*
+         * STEP 4
+         * Mark advisor ready.
+         */
         state.status =
             "initialized";
 
         state.initialized =
             true;
 
-        if (
-            state.location
-        ) {
+        /*
+         * STEP 5
+         * Reconnect restored location to
+         * location-aware modules.
+         */
+        if (state.location) {
             callModule(
                 "ROlyfeLocationAnalysis",
                 "setLocation",
                 state.location
             );
+
+            callModule(
+                "ROlyfeHousing",
+                "setLocation",
+                state.location
+            );
+
+            callModule(
+                "ROlyfeBusiness",
+                "setLocation",
+                state.location
+            );
+
+            callModule(
+                "ROlyfeIncentives",
+                "setLocation",
+                state.location
+            );
         }
 
+        /*
+         * STEP 6
+         * Reconnect restored preferences.
+         */
         if (
             state.preferences &&
             Object.keys(
@@ -3929,184 +2615,169 @@ SECURITY:
                 "setPreferences",
                 state.preferences
             );
+
+            callModule(
+                "ROlyfeHousing",
+                "setPreferences",
+                state.preferences
+            );
+
+            callModule(
+                "ROlyfeBusiness",
+                "setPreferences",
+                state.preferences
+            );
+
+            callModule(
+                "ROlyfeIncentives",
+                "setPreferences",
+                state.preferences
+            );
         }
+
+        /*
+         * STEP 7
+         * Persist only AFTER restore + configuration
+         * + module synchronization are complete.
+         */
+        persist();
 
         emit(
             "initialized",
             {
-                version:
-                    VERSION
+                version: VERSION,
+
+                restored:
+                    Boolean(
+                        state.location ||
+                        (
+                            state.history &&
+                            state.history.length
+                        )
+                    )
             }
+        );
+
+        emitStateChanged(
+            "initialized"
         );
 
         return getStatus();
     }
 
-    /* ======================================================
+    /* ============================================================
        PUBLIC API
-    ====================================================== */
+       ============================================================ */
 
-    const api = {
+    const API = {
+        VERSION: VERSION,
 
-        VERSION,
+        version: VERSION,
 
-        NAME:
-            MODULE_NAME,
+        initialize: initialize,
 
-        INTENTS:
-            clone(
-                INTENTS
-            ),
+        configure: configure,
 
-        MODES:
-            clone(
-                MODES
-            ),
+        getConfig: getConfig,
 
-        initialize,
+        setLocation: setLocation,
 
-        configure,
+        getLocation: getLocation,
 
-        getConfig,
+        setPreferences: setPreferences,
 
-        reset,
+        getPreferences: getPreferences,
 
-        setLocation,
+        classifyQuestion: classifyQuestion,
 
-        getLocation,
+        determineMode: determineMode,
 
-        setPreferences,
+        getDomainsForIntent:
+            getDomainsForIntent,
 
-        getPreferences,
+        buildResponsePlan:
+            buildResponsePlan,
 
-        scoreIntent,
+        analyze: analyze,
 
-        classifyQuestion,
+        ask: ask,
 
-        determineMode,
+        answer: answer,
 
-        getDomainsForIntent,
+        analyzeRelocation:
+            analyzeRelocation,
 
-        buildResponsePlan,
+        analyzeComparison:
+            analyzeComparison,
 
-        collectDomainContext,
+        analyzeProperty:
+            analyzeProperty,
 
-        collectSignals,
+        analyzeBusiness:
+            analyzeBusiness,
 
-        collectGaps,
+        analyzeRisk:
+            analyzeRisk,
 
-        collectTradeoffs,
+        buildAIContext:
+            buildAIContext,
 
-        buildActions,
+        buildSharedContext:
+            buildSharedContext,
 
-        collectSources,
+        getState: getState,
 
-        buildAdvisorContext,
+        getStatus: getStatus,
 
-        buildInstructions,
+        getResult: getResult,
 
-        buildFollowUpQuestions,
+        getPlan: getPlan,
 
-        buildLocalSections,
+        getContext: getContext,
 
-        generateLocalResponse,
+        getResponse: getResponse,
 
-        analyze,
+        getHistory: getHistory,
 
-        ask,
+        clearHistory: clearHistory,
 
-        answer,
+        reset: reset,
 
-        analyzeRelocation,
+        persist: persist,
 
-        analyzeComparison,
+        restore: restore,
 
-        analyzeProperty,
+        clearPersistence:
+            clearPersistence,
 
-        analyzeBusiness,
+        subscribe: subscribe,
 
-        analyzeRisk,
-
-        buildAIContext,
-
-        buildSharedContext,
-
-        getPlan,
-
-        getContext,
-
-        getResponse,
-
-        getResult,
-
-        getIntent,
-
-        getMode,
-
-        getState,
-
-        getStatus,
-
-        addHistory,
-
-        getHistory,
-
-        clearHistory,
-
-        persist,
-
-        restore,
-
-        clearPersistence,
-
-        serialize,
-
-        subscribe
+        serialize: serialize
     };
 
-    /* ======================================================
+    /* ============================================================
        GLOBAL EXPORTS
-    ====================================================== */
+       ============================================================ */
 
-    global.ROlyfeAdvisor =
-        api;
+    window.ROlyfeAdvisor = API;
 
-    global.ROLYFE_ADVISOR =
-        api;
+    window.ROLYFE_ADVISOR = API;
 
-    /* ======================================================
-       AUTO INITIALIZE
-    ====================================================== */
+    /* ============================================================
+       AUTO INITIALIZATION
+       ============================================================ */
 
     if (
-        config.autoInitialize
+        DEFAULT_CONFIG.autoInitialize
     ) {
-        if (
-            typeof document !==
-                "undefined"
-        ) {
-            if (
-                document.readyState ===
-                "loading"
-            ) {
-                document.addEventListener(
-                    "DOMContentLoaded",
-                    function () {
-                        initialize();
-                    },
-                    {
-                        once:
-                            true
-                    }
-                );
-            } else {
-                initialize();
-            }
-        } else {
+        try {
             initialize();
+        } catch (error) {
+            console.error(
+                "[RO’Lyfe Advisor] Initialization failed:",
+                error
+            );
         }
     }
 
-})(typeof window !== "undefined"
-    ? window
-    : globalThis);
+})(window);
