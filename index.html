@@ -1,1 +1,2093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>RO'Lyfe Relocation Intelligence Center™</title>
+
+<meta name="description"
+content="RO'Lyfe Relocation Intelligence Center — research states, cities, incentives, climate, disaster risk, housing, business opportunity and relocation intelligence. PA → 50 States.">
+
+<style>
+:root{
+    --bg:#070b16;
+    --panel:#0d1424;
+    --panel2:#111b30;
+    --border:#263653;
+    --text:#f5f7fb;
+    --muted:#8e9ab0;
+    --accent:#38bdf8;
+    --accent2:#22c55e;
+    --warning:#f59e0b;
+    --danger:#ef4444;
+    --purple:#a78bfa;
+    --shadow:0 15px 40px rgba(0,0,0,.28);
+}
+
+*{
+    box-sizing:border-box;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    margin:0;
+    background:
+        radial-gradient(circle at top right,rgba(56,189,248,.08),transparent 30%),
+        radial-gradient(circle at bottom left,rgba(167,139,250,.06),transparent 30%),
+        var(--bg);
+    color:var(--text);
+    font-family:Inter,Arial,Helvetica,sans-serif;
+}
+
+button,
+input,
+select{
+    font:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+a{
+    color:inherit;
+    text-decoration:none;
+}
+
+.container{
+    width:min(1400px,94%);
+    margin:auto;
+}
+
+/* HEADER */
+
+header{
+    position:sticky;
+    top:0;
+    z-index:1000;
+    backdrop-filter:blur(16px);
+    background:rgba(7,11,22,.9);
+    border-bottom:1px solid var(--border);
+}
+
+.header-inner{
+    min-height:72px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.logo{
+    width:44px;
+    height:44px;
+    border-radius:12px;
+    display:grid;
+    place-items:center;
+    background:linear-gradient(135deg,var(--accent),var(--purple));
+    color:#050914;
+    font-weight:900;
+}
+
+.brand-title{
+    font-size:17px;
+    font-weight:800;
+}
+
+.brand-subtitle{
+    color:var(--muted);
+    font-size:11px;
+    margin-top:3px;
+}
+
+.header-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:var(--muted);
+    font-size:12px;
+}
+
+.status-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--accent2);
+    box-shadow:0 0 12px var(--accent2);
+}
+
+/* NAV */
+
+nav{
+    border-bottom:1px solid rgba(38,54,83,.65);
+    overflow-x:auto;
+}
+
+.nav-inner{
+    display:flex;
+    gap:6px;
+    padding:10px 0;
+    min-width:max-content;
+}
+
+.nav-btn{
+    border:1px solid transparent;
+    background:transparent;
+    color:var(--muted);
+    padding:9px 13px;
+    border-radius:9px;
+    transition:.2s;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+    color:var(--text);
+    background:var(--panel2);
+    border-color:var(--border);
+}
+
+/* HERO */
+
+.hero{
+    padding:42px 0 28px;
+}
+
+.hero-grid{
+    display:grid;
+    grid-template-columns:1.4fr .6fr;
+    gap:20px;
+}
+
+.hero-main{
+    padding:34px;
+    border:1px solid var(--border);
+    border-radius:20px;
+    background:
+        linear-gradient(135deg,rgba(56,189,248,.08),transparent 50%),
+        var(--panel);
+    box-shadow:var(--shadow);
+}
+
+.eyebrow{
+    color:var(--accent);
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+}
+
+h1{
+    margin:10px 0 14px;
+    font-size:clamp(32px,5vw,58px);
+    line-height:1.02;
+}
+
+.hero-main p{
+    max-width:780px;
+    color:var(--muted);
+    font-size:16px;
+    line-height:1.7;
+}
+
+.hero-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:24px;
+}
+
+.primary{
+    border:0;
+    background:var(--accent);
+    color:#03101b;
+    padding:12px 17px;
+    border-radius:10px;
+    font-weight:800;
+}
+
+.secondary{
+    border:1px solid var(--border);
+    background:var(--panel2);
+    color:var(--text);
+    padding:12px 17px;
+    border-radius:10px;
+    font-weight:700;
+}
+
+.hero-side{
+    display:grid;
+    gap:12px;
+}
+
+.stat-card{
+    border:1px solid var(--border);
+    background:var(--panel);
+    border-radius:16px;
+    padding:20px;
+}
+
+.stat-label{
+    color:var(--muted);
+    font-size:12px;
+}
+
+.stat-value{
+    font-size:28px;
+    font-weight:900;
+    margin-top:8px;
+}
+
+.stat-note{
+    color:var(--muted);
+    font-size:11px;
+    margin-top:5px;
+}
+
+/* SEARCH */
+
+.search-panel{
+    margin:10px 0 30px;
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:20px;
+    background:var(--panel);
+}
+
+.search-grid{
+    display:grid;
+    grid-template-columns:2fr 1fr 1fr auto;
+    gap:10px;
+}
+
+input,
+select{
+    width:100%;
+    background:#080e1b;
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:12px;
+    border-radius:9px;
+    outline:none;
+}
+
+input:focus,
+select:focus{
+    border-color:var(--accent);
+}
+
+/* SECTIONS */
+
+section{
+    padding:25px 0;
+}
+
+.section-heading{
+    display:flex;
+    justify-content:space-between;
+    align-items:end;
+    gap:20px;
+    margin-bottom:15px;
+}
+
+.section-heading h2{
+    margin:0;
+    font-size:24px;
+}
+
+.section-heading p{
+    margin:5px 0 0;
+    color:var(--muted);
+    font-size:13px;
+}
+
+/* CARDS */
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+}
+
+.card{
+    border:1px solid var(--border);
+    background:var(--panel);
+    border-radius:16px;
+    padding:20px;
+    transition:.2s;
+}
+
+.card:hover{
+    transform:translateY(-2px);
+    border-color:#3b557c;
+}
+
+.card-icon{
+    font-size:25px;
+    margin-bottom:12px;
+}
+
+.card h3{
+    margin:0 0 8px;
+}
+
+.card p{
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.6;
+}
+
+.card-action{
+    display:inline-block;
+    margin-top:10px;
+    color:var(--accent);
+    font-size:13px;
+    font-weight:700;
+}
+
+/* INTELLIGENCE MODULES */
+
+.module-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+}
+
+.module{
+    min-height:155px;
+    border:1px solid var(--border);
+    border-radius:15px;
+    background:linear-gradient(145deg,var(--panel2),var(--panel));
+    padding:18px;
+}
+
+.module h3{
+    margin:8px 0;
+}
+
+.module p{
+    margin:0;
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.55;
+}
+
+.module-icon{
+    font-size:24px;
+}
+
+/* RISK */
+
+.risk-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+}
+
+.risk{
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px;
+    background:var(--panel);
+}
+
+.risk-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.risk-name{
+    font-weight:800;
+}
+
+.badge{
+    padding:4px 7px;
+    border-radius:6px;
+    font-size:10px;
+    font-weight:800;
+}
+
+.badge.info{
+    background:rgba(56,189,248,.12);
+    color:var(--accent);
+}
+
+.badge.warn{
+    background:rgba(245,158,11,.12);
+    color:var(--warning);
+}
+
+.badge.danger{
+    background:rgba(239,68,68,.12);
+    color:var(--danger);
+}
+
+.risk p{
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.5;
+}
+
+/* INCENTIVES */
+
+.incentive{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.incentive-meta{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.status-active{
+    color:var(--accent2);
+}
+
+.status-verify{
+    color:var(--warning);
+}
+
+/* MEDIA */
+
+.media-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+.media-card{
+    min-height:230px;
+    border:1px solid var(--border);
+    border-radius:17px;
+    background:var(--panel);
+    overflow:hidden;
+}
+
+.media-top{
+    padding:18px;
+}
+
+.media-screen{
+    min-height:125px;
+    display:grid;
+    place-items:center;
+    background:
+        radial-gradient(circle,rgba(56,189,248,.15),transparent 55%),
+        #080e1b;
+    border-top:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    color:var(--muted);
+    text-align:center;
+    padding:20px;
+}
+
+.media-button{
+    margin-top:12px;
+    display:inline-block;
+    border:1px solid var(--border);
+    background:var(--panel2);
+    padding:9px 12px;
+    border-radius:8px;
+    font-size:12px;
+}
+
+/* AI */
+
+.ai-box{
+    border:1px solid var(--border);
+    border-radius:18px;
+    background:
+        linear-gradient(135deg,rgba(167,139,250,.1),transparent),
+        var(--panel);
+    padding:25px;
+}
+
+.ai-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+.ai-output{
+    min-height:180px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:#080e1b;
+    padding:18px;
+    color:var(--muted);
+    line-height:1.65;
+    font-size:13px;
+}
+
+.preference-list{
+    display:grid;
+    gap:8px;
+    margin-top:15px;
+}
+
+.preference{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:var(--muted);
+    font-size:13px;
+}
+
+.preference input{
+    width:auto;
+}
+
+/* PIPELINE */
+
+.pipeline{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:8px;
+}
+
+.step{
+    text-align:center;
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px 8px;
+    background:var(--panel);
+}
+
+.step-number{
+    width:28px;
+    height:28px;
+    margin:0 auto 8px;
+    display:grid;
+    place-items:center;
+    border-radius:50%;
+    background:var(--panel2);
+    color:var(--accent);
+    font-weight:900;
+}
+
+.step small{
+    color:var(--muted);
+}
+
+/* FOOTER */
+
+footer{
+    margin-top:40px;
+    padding:35px 0;
+    border-top:1px solid var(--border);
+}
+
+.footer-grid{
+    display:flex;
+    justify-content:space-between;
+    gap:30px;
+    flex-wrap:wrap;
+}
+
+.footer-note{
+    color:var(--muted);
+    max-width:650px;
+    font-size:12px;
+    line-height:1.7;
+}
+
+.source{
+    color:var(--muted);
+    font-size:10px;
+    margin-top:8px;
+}
+
+/* MOBILE */
+
+@media(max-width:1000px){
+
+    .hero-grid{
+        grid-template-columns:1fr;
+    }
+
+    .module-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .risk-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .pipeline{
+        grid-template-columns:repeat(3,1fr);
+    }
+
+    .search-grid{
+        grid-template-columns:1fr 1fr;
+    }
+}
+
+@media(max-width:650px){
+
+    .container{
+        width:min(94%,100%);
+    }
+
+    .header-status{
+        display:none;
+    }
+
+    .hero{
+        padding-top:25px;
+    }
+
+    .hero-main{
+        padding:22px;
+    }
+
+    h1{
+        font-size:34px;
+    }
+
+    .grid,
+    .module-grid,
+    .risk-grid,
+    .media-grid,
+    .ai-grid{
+        grid-template-columns:1fr;
+    }
+
+    .search-grid{
+        grid-template-columns:1fr;
+    }
+
+    .pipeline{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .section-heading{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+
+<div class="container header-inner">
+
+    <div class="brand">
+
+        <div class="logo">RO</div>
+
+        <div>
+            <div class="brand-title">
+                RO'Lyfe Relocation Intelligence
+            </div>
+
+            <div class="brand-subtitle">
+                PA → 50 States • Location Intelligence Engine
+            </div>
+        </div>
+
+    </div>
+
+    <div class="header-status">
+        <span class="status-dot"></span>
+        Intelligence Center Online
+    </div>
+
+</div>
+
+<nav>
+<div class="container nav-inner">
+
+    <button class="nav-btn active" onclick="scrollToSection('overview')">
+        Overview
+    </button>
+
+    <button class="nav-btn" onclick="scrollToSection('locations')">
+        Locations
+    </button>
+
+    <button class="nav-btn" onclick="scrollToSection('climate')">
+        Climate
+    </button>
+
+    <button class="nav-btn" onclick="scrollToSection('risk')">
+        Risk
+    </button>
+
+    <button class="nav-btn" onclick="scrollToSection('housing')">
+        Housing
+    </button>
+
+    <button class="nav-btn" onclick="scrollToSection('incentives')">
+        Incentives
+    </button>
+
+    <button class="nav-btn" onclick="scrollToSection('business')">
+        Business
+    </button>
+
+    <button class="nav-btn" onclick="scrollToSection('media')">
+        Live Media
+    </button>
+
+    <button class="nav-btn" onclick="scrollToSection('ai')">
+        AI Advisor
+    </button>
+
+</div>
+</nav>
+
+</header>
+
+
+<main>
+
+<!-- HERO -->
+
+<section id="overview" class="hero">
+
+<div class="container hero-grid">
+
+    <div class="hero-main">
+
+        <div class="eyebrow">
+            RO'Lyfe Intelligence Platform
+        </div>
+
+        <h1>
+            Where should you move,
+            invest, live or build?
+        </h1>
+
+        <p>
+            The RO'Lyfe Relocation Intelligence Center combines
+            location data, climate, disaster risk, housing,
+            cost-of-living, relocation incentives, business
+            opportunities and property intelligence into one
+            decision-support system.
+        </p>
+
+        <p>
+            Start with Pennsylvania. Expand to every state.
+            Eventually drill from state → county → city → ZIP →
+            property.
+        </p>
+
+        <div class="hero-actions">
+
+            <button class="primary"
+                    onclick="scrollToSection('locations')">
+                Explore Pennsylvania
+            </button>
+
+            <button class="secondary"
+                    onclick="scrollToSection('ai')">
+                Ask RO'Lyfe AI
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="hero-side">
+
+        <div class="stat-card">
+            <div class="stat-label">
+                CURRENT BUILD
+            </div>
+
+            <div class="stat-value">
+                PA
+            </div>
+
+            <div class="stat-note">
+                Pennsylvania intelligence prototype
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">
+                EXPANSION TARGET
+            </div>
+
+            <div class="stat-value">
+                50
+            </div>
+
+            <div class="stat-note">
+                State-level intelligence architecture
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">
+                GRANULARITY
+            </div>
+
+            <div class="stat-value">
+                ZIP+
+            </div>
+
+            <div class="stat-note">
+                State → County → City → ZIP → Property
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+</section>
+
+
+<!-- SEARCH -->
+
+<section>
+
+<div class="container">
+
+<div class="search-panel">
+
+    <div class="section-heading">
+
+        <div>
+            <h2>Location Search</h2>
+            <p>
+                Start with a state, city, ZIP code or property.
+            </p>
+        </div>
+
+    </div>
+
+    <div class="search-grid">
+
+        <input
+            id="locationSearch"
+            type="text"
+            placeholder="Search city, ZIP, county, property..."
+        >
+
+        <select id="stateSelect">
+
+            <option value="">Select State</option>
+
+            <option>Pennsylvania</option>
+            <option>New Jersey</option>
+            <option>Delaware</option>
+            <option>Maryland</option>
+            <option>Virginia</option>
+            <option>North Carolina</option>
+            <option>South Carolina</option>
+            <option>Georgia</option>
+            <option>Florida</option>
+            <option>Tennessee</option>
+            <option>Texas</option>
+            <option>Oklahoma</option>
+            <option>Arkansas</option>
+            <option>Alabama</option>
+            <option>Mississippi</option>
+            <option>West Virginia</option>
+            <option>Arizona</option>
+            <option>Nevada</option>
+            <option>California</option>
+            <option>Oregon</option>
+            <option>Washington</option>
+            <option>Alaska</option>
+            <option>Hawaii</option>
+
+            <option>All 50 States</option>
+
+        </select>
+
+        <select id="purposeSelect">
+
+            <option value="">Purpose</option>
+            <option>Move</option>
+            <option>Remote Work</option>
+            <option>Family</option>
+            <option>Business</option>
+            <option>Real Estate</option>
+            <option>Investment</option>
+            <option>Retirement</option>
+            <option>Relocation Incentive</option>
+
+        </select>
+
+        <button class="primary" onclick="runSearch()">
+            Search
+        </button>
+
+    </div>
+
+    <div id="searchResult" class="source">
+        Search engine ready.
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- LOCATIONS -->
+
+<section id="locations">
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>Location Intelligence</h2>
+    <p>
+        Build from the state level down to the individual property.
+    </p>
+</div>
+
+</div>
+
+
+<div class="grid">
+
+    <div class="card">
+
+        <div class="card-icon">🗺️</div>
+
+        <h3>Pennsylvania</h3>
+
+        <p>
+            Philadelphia, Pittsburgh, Harrisburg, Allentown,
+            Erie, Lancaster, Reading and statewide research.
+        </p>
+
+        <span class="card-action">
+            PA Intelligence →
+        </span>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-icon">🌊</div>
+
+        <h3>Pacific Region</h3>
+
+        <p>
+            California, Oregon, Washington, Alaska and Hawaii.
+            Climate, housing, hazards and opportunity research.
+        </p>
+
+        <span class="card-action">
+            Explore Pacific →
+        </span>
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-icon">🇺🇸</div>
+
+        <h3>50-State Expansion</h3>
+
+        <p>
+            The architecture is designed so additional states
+            can be added without rebuilding the core engine.
+        </p>
+
+        <span class="card-action">
+            50-State Engine →
+        </span>
+
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- INTELLIGENCE -->
+
+<section>
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>Relocation Intelligence Modules</h2>
+    <p>
+        The system evaluates a location from multiple angles.
+    </p>
+</div>
+
+</div>
+
+
+<div class="module-grid">
+
+    <div class="module">
+        <div class="module-icon">🏠</div>
+        <h3>Housing</h3>
+        <p>
+            Home prices, rent, property taxes, insurance,
+            inventory and housing conditions.
+        </p>
+    </div>
+
+
+    <div class="module">
+        <div class="module-icon">💰</div>
+        <h3>Cost of Living</h3>
+        <p>
+            Housing, transportation, utilities, food,
+            taxes and everyday expenses.
+        </p>
+    </div>
+
+
+    <div class="module">
+        <div class="module-icon">🎁</div>
+        <h3>Incentives</h3>
+        <p>
+            Relocation programs, grants, tax incentives,
+            homebuyer programs and business incentives.
+        </p>
+    </div>
+
+
+    <div class="module">
+        <div class="module-icon">🌡️</div>
+        <h3>Climate</h3>
+        <p>
+            Heat, cold, precipitation, snow, humidity,
+            seasons and long-term climate patterns.
+        </p>
+    </div>
+
+
+    <div class="module">
+        <div class="module-icon">🌪️</div>
+        <h3>Risk</h3>
+        <p>
+            Flood, tornado, hurricane, wildfire,
+            earthquake, drought and severe weather.
+        </p>
+    </div>
+
+
+    <div class="module">
+        <div class="module-icon">💼</div>
+        <h3>Business</h3>
+        <p>
+            Business formation, jobs, industries,
+            entrepreneurship and local economic activity.
+        </p>
+    </div>
+
+
+    <div class="module">
+        <div class="module-icon">🏗️</div>
+        <h3>Opportunity</h3>
+        <p>
+            Real estate, development, infrastructure,
+            investment and emerging markets.
+        </p>
+    </div>
+
+
+    <div class="module">
+        <div class="module-icon">🤖</div>
+        <h3>AI Advisor</h3>
+        <p>
+            AI interprets structured location data and explains
+            potential matches and tradeoffs.
+        </p>
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- CLIMATE -->
+
+<section id="climate">
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>Climate Intelligence</h2>
+    <p>
+        Climate is part of the relocation decision — not an afterthought.
+    </p>
+</div>
+
+</div>
+
+
+<div class="grid">
+
+    <div class="card">
+        <div class="card-icon">☀️</div>
+        <h3>Heat</h3>
+        <p>
+            Track average temperatures, extreme heat,
+            summer conditions and heat-related risk.
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-icon">❄️</div>
+        <h3>Cold & Snow</h3>
+        <p>
+            Winter temperatures, snow, ice, freeze events
+            and winter maintenance considerations.
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-icon">🌧️</div>
+        <h3>Rain & Flooding</h3>
+        <p>
+            Precipitation patterns, extreme rainfall,
+            flood exposure and drainage concerns.
+        </p>
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- RISK -->
+
+<section id="risk">
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>Disaster & Risk Engine</h2>
+    <p>
+        Risk information should be evaluated at the actual location,
+        not only at the state level.
+    </p>
+</div>
+
+</div>
+
+
+<div class="risk-grid">
+
+    <div class="risk">
+        <div class="risk-top">
+            <span class="risk-name">Flood</span>
+            <span class="badge warn">CHECK</span>
+        </div>
+        <p>
+            FEMA flood zones, river flooding, coastal flooding
+            and extreme precipitation.
+        </p>
+    </div>
+
+
+    <div class="risk">
+        <div class="risk-top">
+            <span class="risk-name">Tornado</span>
+            <span class="badge info">CHECK</span>
+        </div>
+        <p>
+            Historical tornado activity and severe thunderstorm
+            exposure.
+        </p>
+    </div>
+
+
+    <div class="risk">
+        <div class="risk-top">
+            <span class="risk-name">Hurricane</span>
+            <span class="badge info">CHECK</span>
+        </div>
+        <p>
+            Tropical storm, hurricane, wind and rainfall
+            exposure.
+        </p>
+    </div>
+
+
+    <div class="risk">
+        <div class="risk-top">
+            <span class="risk-name">Wildfire</span>
+            <span class="badge warn">CHECK</span>
+        </div>
+        <p>
+            Wildfire exposure, drought conditions and
+            smoke considerations.
+        </p>
+    </div>
+
+
+    <div class="risk">
+        <div class="risk-top">
+            <span class="risk-name">Earthquake</span>
+            <span class="badge info">CHECK</span>
+        </div>
+        <p>
+            Seismic activity and regional earthquake exposure.
+        </p>
+    </div>
+
+
+    <div class="risk">
+        <div class="risk-top">
+            <span class="risk-name">Extreme Heat</span>
+            <span class="badge warn">CHECK</span>
+        </div>
+        <p>
+            Heat waves, cooling demand and long-term
+            heat exposure.
+        </p>
+    </div>
+
+
+    <div class="risk">
+        <div class="risk-top">
+            <span class="risk-name">Winter</span>
+            <span class="badge info">CHECK</span>
+        </div>
+        <p>
+            Snow, ice, freezing temperatures and winter
+            storm exposure.
+        </p>
+    </div>
+
+
+    <div class="risk">
+        <div class="risk-top">
+            <span class="risk-name">Drought</span>
+            <span class="badge warn">CHECK</span>
+        </div>
+        <p>
+            Water stress, drought conditions and long-term
+            resource considerations.
+        </p>
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- HOUSING -->
+
+<section id="housing">
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>Housing & Property Intelligence</h2>
+    <p>
+        Relocation eventually connects directly to the property engine.
+    </p>
+</div>
+
+</div>
+
+
+<div class="grid">
+
+    <div class="card">
+        <div class="card-icon">🏘️</div>
+        <h3>Housing Market</h3>
+        <p>
+            Compare purchase prices, rent, inventory,
+            appreciation and local housing conditions.
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-icon">🏦</div>
+        <h3>Property Finance</h3>
+        <p>
+            Connect location research to financing,
+            private capital, construction and investment.
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-icon">📍</div>
+        <h3>Property Research</h3>
+        <p>
+            Future state → county → city → ZIP →
+            parcel → property intelligence.
+        </p>
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- INCENTIVES -->
+
+<section id="incentives">
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>Relocation Incentives</h2>
+    <p>
+        Programs must be verified against official sources before
+        being treated as active.
+    </p>
+</div>
+
+</div>
+
+
+<div class="grid">
+
+    <div class="card incentive">
+
+        <div class="incentive-meta">
+            <h3>Tulsa Remote</h3>
+            <span class="badge info">VERIFY</span>
+        </div>
+
+        <p>
+            Example of a location-based remote-worker incentive.
+            Eligibility and program availability must be verified
+            before applying.
+        </p>
+
+        <span class="card-action">
+            Official Program →
+        </span>
+
+    </div>
+
+
+    <div class="card incentive">
+
+        <div class="incentive-meta">
+            <h3>Ascend WV</h3>
+            <span class="badge info">VERIFY</span>
+        </div>
+
+        <p>
+            Example of a community-focused relocation incentive
+            program in West Virginia.
+        </p>
+
+        <span class="card-action">
+            Official Program →
+        </span>
+
+    </div>
+
+
+    <div class="card incentive">
+
+        <div class="incentive-meta">
+            <h3>Targeted Assistance</h3>
+            <span class="badge warn">ELIGIBILITY</span>
+        </div>
+
+        <p>
+            Some relocation assistance is restricted to specific
+            workers, industries or circumstances.
+        </p>
+
+        <span class="card-action">
+            Eligibility Research →
+        </span>
+
+    </div>
+
+</div>
+
+
+<div class="source">
+    Future incentive database fields:
+    Program • Location • Benefit • Eligibility • Deadline •
+    Status • Official Source • Last Verified
+</div>
+
+</div>
+
+</section>
+
+
+<!-- BUSINESS -->
+
+<section id="business">
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>Business & Opportunity Engine</h2>
+    <p>
+        Moving isn't only about living somewhere — it can also be
+        about building something there.
+    </p>
+</div>
+
+</div>
+
+
+<div class="grid">
+
+    <div class="card">
+        <div class="card-icon">🚀</div>
+        <h3>Entrepreneurship</h3>
+        <p>
+            Business formation, startup ecosystems,
+            local incentives and small-business resources.
+        </p>
+    </div>
+
+
+    <div class="card">
+        <div class="card-icon">🏢</div>
+        <h3>Commercial Opportunity</h3>
+        <p>
+            Commercial property, development opportunities,
+            local demand and emerging markets.
+        </p>
+    </div>
+
+
+    <div class="card">
+        <div class="card-icon">🤖</div>
+        <h3>Automation Opportunity</h3>
+        <p>
+            Identify locations where robotics, AI and automation
+            businesses could operate.
+        </p>
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- NET RELOCATION VALUE -->
+
+<section>
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>Net Relocation Value</h2>
+    <p>
+        Don't look at an incentive alone. Calculate the actual
+        financial impact of moving.
+    </p>
+</div>
+
+</div>
+
+
+<div class="grid">
+
+    <div class="card">
+
+        <h3>Potential Benefits</h3>
+
+        <p>
+            Relocation incentive<br>
+            Homebuyer assistance<br>
+            Tax credits<br>
+            Business incentives<br>
+            Lower housing costs
+        </p>
+
+    </div>
+
+
+    <div class="card">
+
+        <h3>Potential Costs</h3>
+
+        <p>
+            Moving expenses<br>
+            Housing difference<br>
+            Insurance<br>
+            Taxes<br>
+            Transportation<br>
+            Utility differences
+        </p>
+
+    </div>
+
+
+    <div class="card">
+
+        <h3>Future Calculation</h3>
+
+        <p>
+            Net Relocation Value =
+            Total Verified Benefits −
+            Incremental Relocation Costs
+        </p>
+
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- MEDIA -->
+
+<section id="media">
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>Live Media & Weather</h2>
+    <p>
+        Official external sources are preferred over copied or
+        rebroadcast content.
+    </p>
+</div>
+
+</div>
+
+
+<div class="media-grid">
+
+    <div class="media-card">
+
+        <div class="media-top">
+
+            <h3>📺 CBS News 24/7</h3>
+
+            <p class="source">
+                Live national news stream.
+            </p>
+
+            <a
+                class="media-button"
+                href="https://www.cbsnews.com/live/"
+                target="_blank"
+                rel="noopener">
+                Open CBS News 24/7 →
+            </a>
+
+        </div>
+
+        <div class="media-screen">
+
+            Official CBS live stream
+
+            <br>
+
+            <span class="source">
+                Opens in official CBS source
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="media-card">
+
+        <div class="media-top">
+
+            <h3>🌦️ Weather Intelligence</h3>
+
+            <p class="source">
+                Weather, radar, severe weather and alerts.
+            </p>
+
+            <a
+                class="media-button"
+                href="https://weather.com/"
+                target="_blank"
+                rel="noopener">
+                Open Weather.com →
+            </a>
+
+        </div>
+
+        <div class="media-screen">
+
+            Weather intelligence
+
+            <br>
+
+            <span class="source">
+                Radar • Forecast • Alerts • Severe Weather
+            </span>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- AI -->
+
+<section id="ai">
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>RO'Lyfe AI Relocation Advisor</h2>
+    <p>
+        The AI layer interprets structured data instead of producing
+        unexplained recommendations.
+    </p>
+</div>
+
+</div>
+
+
+<div class="ai-box">
+
+<div class="ai-grid">
+
+<div>
+
+    <h3>Tell the engine what matters.</h3>
+
+    <p class="source">
+        These preferences will eventually feed the location
+        matching engine.
+    </p>
+
+
+    <div class="preference-list">
+
+        <label class="preference">
+            <input type="checkbox" checked>
+            Warm climate
+        </label>
+
+        <label class="preference">
+            <input type="checkbox" checked>
+            Lower housing cost
+        </label>
+
+        <label class="preference">
+            <input type="checkbox">
+            Relocation incentive
+        </label>
+
+        <label class="preference">
+            <input type="checkbox">
+            Business opportunity
+        </label>
+
+        <label class="preference">
+            <input type="checkbox">
+            Real estate opportunity
+        </label>
+
+        <label class="preference">
+            <input type="checkbox">
+            Lower disaster exposure
+        </label>
+
+        <label class="preference">
+            <input type="checkbox">
+            Family-friendly environment
+        </label>
+
+        <label class="preference">
+            <input type="checkbox">
+            Remote-work friendly
+        </label>
+
+    </div>
+
+    <button
+        class="primary"
+        style="margin-top:18px"
+        onclick="generateAnalysis()">
+
+        Analyze Location Fit
+
+    </button>
+
+</div>
+
+
+<div id="aiOutput" class="ai-output">
+
+    <strong>RO'Lyfe AI</strong>
+
+    <br><br>
+
+    Your analysis will appear here.
+
+    <br><br>
+
+    The production version will connect this interface
+    to structured location data, official incentive sources,
+    climate data, risk datasets and property intelligence.
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- PIPELINE -->
+
+<section>
+
+<div class="container">
+
+<div class="section-heading">
+
+<div>
+    <h2>RO'Lyfe Relocation → Opportunity Pipeline</h2>
+    <p>
+        The long-term platform connects relocation intelligence
+        to the broader RO'Lyfe ecosystem.
+    </p>
+</div>
+
+</div>
+
+
+<div class="pipeline">
+
+    <div class="step">
+        <div class="step-number">1</div>
+        <strong>Relocation</strong>
+        <br>
+        <small>Where?</small>
+    </div>
+
+    <div class="step">
+        <div class="step-number">2</div>
+        <strong>Property</strong>
+        <br>
+        <small>What?</small>
+    </div>
+
+    <div class="step">
+        <div class="step-number">3</div>
+        <strong>Inspection</strong>
+        <br>
+        <small>Condition?</small>
+    </div>
+
+    <div class="step">
+        <div class="step-number">4</div>
+        <strong>Capital</strong>
+        <br>
+        <small>How financed?</small>
+    </div>
+
+    <div class="step">
+        <div class="step-number">5</div>
+        <strong>Business</strong>
+        <br>
+        <small>What can be built?</small>
+    </div>
+
+    <div class="step">
+        <div class="step-number">6</div>
+        <strong>Automation</strong>
+        <br>
+        <small>What can AI/robots do?</small>
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+</main>
+
+
+<footer>
+
+<div class="container footer-grid">
+
+<div>
+
+    <strong>
+        RO'Lyfe Relocation Intelligence Center™
+    </strong>
+
+    <div class="footer-note">
+        Building location intelligence from Pennsylvania
+        to all 50 states.
+    </div>
+
+</div>
+
+
+<div class="footer-note">
+
+    <strong>Data principle:</strong>
+
+    Incentives, climate conditions, property information
+    and risk data should be tied to a source and verification
+    date whenever possible.
+
+    <br><br>
+
+    This platform is a research and decision-support tool.
+    It does not guarantee eligibility, financial outcomes,
+    property conditions or future events.
+
+</div>
+
+</div>
+
+</footer>
+
+
+<script>
+
+/* ================================
+   RO'LYFE RELOCATION ENGINE
+   ================================ */
+
+function scrollToSection(id){
+
+    const element = document.getElementById(id);
+
+    if(element){
+        element.scrollIntoView({
+            behavior:"smooth",
+            block:"start"
+        });
+    }
+}
+
+
+/* ================================
+   LOCATION SEARCH
+   ================================ */
+
+function runSearch(){
+
+    const query =
+        document.getElementById("locationSearch").value.trim();
+
+    const state =
+        document.getElementById("stateSelect").value;
+
+    const purpose =
+        document.getElementById("purposeSelect").value;
+
+    const result =
+        document.getElementById("searchResult");
+
+
+    if(!query && !state){
+
+        result.innerHTML =
+            "Enter a location or select a state to begin.";
+
+        return;
+    }
+
+
+    let message =
+        "Search prepared for ";
+
+    if(query){
+        message += "<strong>" + escapeHTML(query) + "</strong>";
+    }
+
+    if(state){
+
+        if(query){
+            message += " • ";
+        }
+
+        message += "<strong>" +
+            escapeHTML(state) +
+            "</strong>";
+    }
+
+    if(purpose){
+
+        message +=
+            " • Purpose: <strong>" +
+            escapeHTML(purpose) +
+            "</strong>";
+    }
+
+
+    message +=
+        "<br>Future engine connection: states.json → location database → official sources → AI analysis.";
+
+    result.innerHTML = message;
+}
+
+
+/* ================================
+   AI PROTOTYPE
+   ================================ */
+
+function generateAnalysis(){
+
+    const output =
+        document.getElementById("aiOutput");
+
+
+    output.innerHTML = `
+
+        <strong>RO'Lyfe AI — Prototype Analysis</strong>
+
+        <br><br>
+
+        Your selected preferences have been captured.
+
+        <br><br>
+
+        <strong>Next engine stage:</strong>
+
+        <br>
+
+        1. Identify locations matching the selected criteria.<br>
+        2. Pull verified incentive programs.<br>
+        3. Compare housing and cost-of-living data.<br>
+        4. Evaluate climate and disaster exposure.<br>
+        5. Identify business and real-estate opportunities.<br>
+        6. Explain tradeoffs and missing information.
+
+        <br><br>
+
+        <span class="source">
+        This prototype intentionally does not invent live
+        location data. Production analysis will use structured
+        datasets and verified sources.
+        </span>
+
+    `;
+}
+
+
+/* ================================
+   SECURITY
+   ================================ */
+
+function escapeHTML(value){
+
+    return value
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+}
+
+
+/* ================================
+   NAV ACTIVE STATE
+   ================================ */
+
+const sections =
+    document.querySelectorAll("main section[id]");
+
+const navButtons =
+    document.querySelectorAll(".nav-btn");
+
+
+window.addEventListener("scroll",()=>{
+
+    let current = "";
+
+    sections.forEach(section => {
+
+        const top =
+            section.offsetTop - 150;
+
+        if(window.scrollY >= top){
+            current = section.id;
+        }
+
+    });
+
+
+    navButtons.forEach(button => {
+
+        button.classList.remove("active");
+
+        const action =
+            button.getAttribute("onclick") || "";
+
+        if(action.includes(current)){
+            button.classList.add("active");
+        }
+
+    });
+
+});
+
+
+</script>
+
+</body>
+          </html>
