@@ -1,0 +1,643 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <title>RO'Lyfe AI Intelligence | Relocation Intelligence</title>  <meta name="description" content="RO'Lyfe AI Intelligence module for relocation, property, climate, risk, housing, incentives and opportunity analysis.">  <style>
+    :root {
+      --bg: #070b16;
+      --panel: #10182b;
+      --panel-2: #0c1324;
+      --border: #263653;
+      --text: #f4f7fb;
+      --muted: #9eabc1;
+      --accent: #6ee7b7;
+      --accent-2: #60a5fa;
+      --warning: #fbbf24;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top right, rgba(96,165,250,.10), transparent 35%),
+        radial-gradient(circle at top left, rgba(110,231,183,.08), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .container {
+      width: min(1100px, calc(100% - 32px));
+      margin: auto;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: rgba(7,11,22,.92);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      font-weight: 800;
+      letter-spacing: .3px;
+    }
+
+    .brand span {
+      color: var(--accent);
+    }
+
+    .back {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .back:hover {
+      color: var(--text);
+    }
+
+    .hero {
+      padding: 70px 0 42px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: clamp(36px, 7vw, 68px);
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+
+    .hero p {
+      max-width: 780px;
+      color: var(--muted);
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 30px 0;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+    }
+
+    .card h2,
+    .card h3 {
+      margin-top: 0;
+    }
+
+    .card p {
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border: 1px solid rgba(110,231,183,.25);
+      border-radius: 999px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .advisor {
+      margin: 34px 0;
+      padding: 26px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: linear-gradient(
+        135deg,
+        rgba(96,165,250,.10),
+        rgba(110,231,183,.06)
+      );
+    }
+
+    .advisor h2 {
+      margin-top: 0;
+    }
+
+    textarea,
+    input,
+    select {
+      width: 100%;
+      background: #080e1c;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px;
+      font: inherit;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent-2);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 7px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 13px 18px;
+      margin-top: 14px;
+      background: var(--accent);
+      color: #06110d;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:hover {
+      filter: brightness(1.08);
+    }
+
+    .result {
+      display: none;
+      margin-top: 20px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #080e1c;
+    }
+
+    .result.show {
+      display: block;
+    }
+
+    .result-title {
+      color: var(--accent);
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .module-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .module {
+      padding: 15px;
+      border-radius: 12px;
+      background: #0a1120;
+      border: 1px solid var(--border);
+    }
+
+    .module strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .module span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .step {
+      text-align: center;
+      padding: 13px 7px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0a1120;
+      font-size: 12px;
+    }
+
+    .step strong {
+      display: block;
+      color: var(--accent);
+      font-size: 18px;
+    }
+
+    footer {
+      margin-top: 55px;
+      padding: 30px 0 50px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 800px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid,
+      .module-list {
+        grid-template-columns: 1fr;
+      }
+
+      .pipeline {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .hero {
+        padding-top: 48px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        width: min(100% - 22px, 1100px);
+      }
+
+      h1 {
+        letter-spacing: -1px;
+      }
+
+      .pipeline {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style></head><body><header>
+  <div class="container nav">
+    <div class="brand">RO<span>'Lyfe</span> AI Intelligence</div><a class="back" href="../">
+  ← Relocation Intelligence
+</a>
+
+  </div>
+</header><main>  <section class="hero">
+    <div class="container">  <div class="eyebrow">RO'Lyfe Intelligence Platform</div>
+
+  <h1>AI Relocation Intelligence</h1>
+
+  <p>
+    An intelligence layer designed to interpret location,
+    climate, disaster risk, housing, incentives, business,
+    property and opportunity data — from state level down
+    toward the individual property.
+  </p>
+
+  <div style="margin-top:24px;">
+    <span class="status">
+      <span class="dot"></span>
+      AI MODULE ONLINE
+    </span>
+  </div>
+
+</div>
+
+  </section>  <section class="container"><div class="grid">
+
+  <div class="card">
+    <h3>📍 Location Intelligence</h3>
+    <p>
+      Evaluate states, counties, cities, ZIP codes and eventually
+      individual properties.
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>🌡️ Climate Intelligence</h3>
+    <p>
+      Interpret heat, cold, snow, precipitation, humidity,
+      seasons and long-term climate conditions.
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>🌪️ Risk Intelligence</h3>
+    <p>
+      Analyze flood, tornado, hurricane, wildfire, earthquake,
+      drought, extreme heat and winter exposure.
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>🏠 Property Intelligence</h3>
+    <p>
+      Connect relocation research with housing, property,
+      development and real-estate opportunities.
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>💰 Financial Intelligence</h3>
+    <p>
+      Examine housing costs, taxes, insurance, incentives,
+      financing and potential relocation economics.
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>🤖 Opportunity Intelligence</h3>
+    <p>
+      Identify potential business, automation, investment and
+      development opportunities.
+    </p>
+  </div>
+
+</div>
+
+<section class="advisor">
+
+  <div class="eyebrow">AI Advisor Prototype</div>
+
+  <h2>Analyze a Location</h2>
+
+  <p style="color:var(--muted);">
+    Enter a location and tell the intelligence engine what
+    matters to you.
+  </p>
+
+  <div class="form-grid">
+
+    <div>
+      <label for="location">Location</label>
+      <input
+        id="location"
+        type="text"
+        placeholder="Philadelphia, PA"
+      >
+    </div>
+
+    <div>
+      <label for="purpose">Primary Purpose</label>
+      <select id="purpose">
+        <option value="relocation">Relocation</option>
+        <option value="investment">Real Estate Investment</option>
+        <option value="business">Business Opportunity</option>
+        <option value="living">Lifestyle / Living</option>
+        <option value="development">Development</option>
+      </select>
+    </div>
+
+  </div>
+
+  <div style="margin-top:14px;">
+    <label for="preferences">What matters most?</label>
+
+    <textarea
+      id="preferences"
+      placeholder="Example: warm climate, lower housing costs, business opportunity, lower disaster exposure and real-estate potential."
+    ></textarea>
+  </div>
+
+  <button onclick="analyzeLocation()">
+    Analyze Location Fit
+  </button>
+
+  <div id="result" class="result">
+    <div class="result-title">RO'Lyfe AI Analysis</div>
+
+    <div id="resultText"></div>
+  </div>
+
+</section>
+
+<section class="card">
+
+  <div class="eyebrow">Intelligence Pipeline</div>
+
+  <h2>From Relocation → Opportunity</h2>
+
+  <p>
+    The long-term RO'Lyfe architecture connects location
+    intelligence to property analysis, inspection, capital,
+    business development and automation.
+  </p>
+
+  <div class="pipeline">
+
+    <div class="step">
+      <strong>1</strong>
+      Relocation
+    </div>
+
+    <div class="step">
+      <strong>2</strong>
+      Property
+    </div>
+
+    <div class="step">
+      <strong>3</strong>
+      Inspection
+    </div>
+
+    <div class="step">
+      <strong>4</strong>
+      Capital
+    </div>
+
+    <div class="step">
+      <strong>5</strong>
+      Business
+    </div>
+
+    <div class="step">
+      <strong>6</strong>
+      Automation
+    </div>
+
+  </div>
+
+</section>
+
+<section class="card" style="margin-top:18px;">
+
+  <div class="eyebrow">Data Architecture</div>
+
+  <h2>Structured Intelligence</h2>
+
+  <div class="module-list">
+
+    <div class="module">
+      <strong>Housing</strong>
+      <span>Prices, rent, taxes, insurance and inventory.</span>
+    </div>
+
+    <div class="module">
+      <strong>Climate</strong>
+      <span>Temperature, precipitation, snow and heat.</span>
+    </div>
+
+    <div class="module">
+      <strong>Risk</strong>
+      <span>Flood, tornado, hurricane, wildfire and other hazards.</span>
+    </div>
+
+    <div class="module">
+      <strong>Incentives</strong>
+      <span>Programs, grants, tax incentives and assistance.</span>
+    </div>
+
+    <div class="module">
+      <strong>Business</strong>
+      <span>Industries, entrepreneurship and economic opportunity.</span>
+    </div>
+
+    <div class="module">
+      <strong>Property</strong>
+      <span>Real estate, development and property intelligence.</span>
+    </div>
+
+  </div>
+
+</section>
+
+  </section></main><footer>
+  <div class="container"><strong>RO'Lyfe Relocation Intelligence Center™</strong>
+
+<p>
+  Building location intelligence from Pennsylvania to all 50 states.
+</p>
+
+<p>
+  This platform is a research and decision-support tool.
+  It does not guarantee eligibility, financial outcomes,
+  property conditions or future events.
+</p>
+
+  </div>
+</footer><script>
+  function analyzeLocation() {
+
+    const location =
+      document.getElementById("location").value.trim();
+
+    const purpose =
+      document.getElementById("purpose").value;
+
+    const preferences =
+      document.getElementById("preferences").value.trim();
+
+    const result =
+      document.getElementById("result");
+
+    const resultText =
+      document.getElementById("resultText");
+
+    if (!location) {
+      result.classList.add("show");
+
+      resultText.innerHTML =
+        "Enter a state, city, ZIP code or property to begin the analysis.";
+
+      return;
+    }
+
+    const purposeLabels = {
+      relocation: "relocation",
+      investment: "real-estate investment",
+      business: "business opportunity",
+      living: "living",
+      development: "development"
+    };
+
+    const purposeLabel =
+      purposeLabels[purpose] || "location analysis";
+
+    result.classList.add("show");
+
+    resultText.innerHTML = `
+      <p>
+        <strong>Location:</strong>
+        ${escapeHtml(location)}
+      </p>
+
+      <p>
+        <strong>Primary objective:</strong>
+        ${escapeHtml(purposeLabel)}
+      </p>
+
+      <p>
+        <strong>Priority criteria:</strong>
+        ${preferences
+          ? escapeHtml(preferences)
+          : "No specific preferences entered yet."}
+      </p>
+
+      <p style="color:var(--muted);">
+        Prototype analysis initialized. The production RO'Lyfe
+        intelligence engine will connect this interface to
+        structured housing, climate, risk, incentive, business
+        and property datasets before producing a verified
+        location assessment.
+      </p>
+    `;
+  }
+
+  function escapeHtml(value) {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+</script></body>
+</html>
