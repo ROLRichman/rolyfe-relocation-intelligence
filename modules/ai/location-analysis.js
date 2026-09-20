@@ -8,55 +8,14 @@
  *   /modules/ai/location-analysis.js
  *
  * VERSION:
- *   1.1.0
+ *   1.2.0
  *
  * PURPOSE:
  *   AI-ready location intelligence aggregation and analysis.
  *
  * ROLE:
- *   This module sits between the individual intelligence modules
- *   and the RO’Lyfe AI orchestration layer.
- *
- *   It combines:
- *     • Location
- *     • Lifestyle
- *     • Housing
- *     • Cost of Living
- *     • Climate
- *     • Weather
- *     • Risk
- *     • Business
- *     • Incentives
- *     • Opportunity
- *     • Property
- *
- * DESIGN PRINCIPLES:
- *   • No universal "best location" claim
- *   • User priorities drive interpretation
- *   • Data availability is separated from data quality
- *   • Missing information becomes a documented gap
- *   • Risk is contextual, not a single generic score
- *   • Financial fit is separated from lifestyle fit
- *   • Property intelligence remains distinct from relocation
- *   • AI receives structured context instead of raw module chaos
- *
- * COMPATIBILITY:
- *   Designed for:
- *     ROlyfeCore
- *     ROlyfeLocationEngine
- *     ROlyfeIntelligence
- *     ROlyfeOpportunity
- *     ROlyfeClimate
- *     ROlyfeWeather
- *     ROlyfeRisk
- *     ROlyfeHousing
- *     ROlyfeIncentives
- *     ROlyfeBusiness
- *     ROlyfePropertyAnalysis
- *
- * PUBLIC GLOBALS:
- *   window.ROlyfeLocationAnalysis
- *   window.ROLYFE_LOCATION_ANALYSIS
+ *   Location intelligence bridge between individual intelligence
+ *   modules and the RO’Lyfe AI orchestration layer.
  *
  * ============================================================
  */
@@ -64,12 +23,8 @@
 (function (window) {
   "use strict";
 
-  const VERSION = "1.1.0";
+  const VERSION = "1.2.0";
   const MODULE_NAME = "ROlyfeLocationAnalysis";
-
-  /* ============================================================
-   * CONFIGURATION
-   * ============================================================ */
 
   const DEFAULT_CONFIG = {
     autoInitialize: true,
@@ -84,10 +39,6 @@
   };
 
   let config = Object.assign({}, DEFAULT_CONFIG);
-
-  /* ============================================================
-   * CONSTANTS
-   * ============================================================ */
 
   const PRIORITIES = [
     "climate",
@@ -131,10 +82,6 @@
     "opportunity",
     "property"
   ];
-
-  /* ============================================================
-   * STATE
-   * ============================================================ */
 
   function createInitialState() {
     return {
@@ -244,12 +191,7 @@
   }
 
   let state = createInitialState();
-
   const subscribers = {};
-
-  /* ============================================================
-   * BASIC HELPERS
-   * ============================================================ */
 
   function now() {
     return new Date().toISOString();
@@ -260,9 +202,13 @@
       return fallback !== undefined ? fallback : "";
     }
 
-    const output = String(value).trim();
+    const result = String(value).trim();
 
-    return output || (fallback !== undefined ? fallback : "");
+    return result || (
+      fallback !== undefined
+        ? fallback
+        : ""
+    );
   }
 
   function number(value, fallback) {
@@ -270,16 +216,24 @@
 
     return Number.isFinite(parsed)
       ? parsed
-      : (fallback !== undefined ? fallback : null);
+      : (
+        fallback !== undefined
+          ? fallback
+          : null
+      );
   }
 
   function array(value) {
-    return Array.isArray(value) ? value : [];
+    return Array.isArray(value)
+      ? value
+      : [];
   }
 
   function clone(value) {
     try {
-      return JSON.parse(JSON.stringify(value));
+      return JSON.parse(
+        JSON.stringify(value)
+      );
     } catch (error) {
       return value;
     }
@@ -290,9 +244,11 @@
       new Set(
         array(values)
           .filter(function (value) {
-            return value !== null &&
+            return (
+              value !== null &&
               value !== undefined &&
-              String(value).trim() !== "";
+              String(value).trim() !== ""
+            );
           })
           .map(function (value) {
             return String(value).trim();
@@ -302,11 +258,11 @@
   }
 
   function clamp(value, min, max) {
-    const n = number(value, min);
+    const parsed = number(value, min);
 
     return Math.min(
       max,
-      Math.max(min, n)
+      Math.max(min, parsed)
     );
   }
 
@@ -323,13 +279,19 @@
       return null;
     }
 
-    return valid.reduce(function (sum, value) {
-      return sum + value;
-    }, 0) / valid.length;
+    return valid.reduce(
+      function (sum, value) {
+        return sum + value;
+      },
+      0
+    ) / valid.length;
   }
 
   function meaningful(value) {
-    if (value === null || value === undefined) {
+    if (
+      value === null ||
+      value === undefined
+    ) {
       return false;
     }
 
@@ -356,11 +318,18 @@
     const parts = String(path).split(".");
     let current = object;
 
-    for (let i = 0; i < parts.length; i += 1) {
+    for (
+      let i = 0;
+      i < parts.length;
+      i += 1
+    ) {
       if (
         current === null ||
         current === undefined ||
-        !Object.prototype.hasOwnProperty.call(current, parts[i])
+        !Object.prototype.hasOwnProperty.call(
+          current,
+          parts[i]
+        )
       ) {
         return fallback;
       }
@@ -368,41 +337,106 @@
       current = current[parts[i]];
     }
 
-    return current === undefined ? fallback : current;
+    return current === undefined
+      ? fallback
+      : current;
   }
 
   function normalizeScore(value, fallback) {
-    const n = number(value, fallback);
+    const parsed = number(
+      value,
+      fallback
+    );
 
-    if (n === null || n === undefined) {
+    if (
+      parsed === null ||
+      parsed === undefined
+    ) {
       return null;
     }
 
-    if (n >= 0 && n <= 1) {
-      return Math.round(n * 100);
+    if (
+      parsed >= 0 &&
+      parsed <= 1
+    ) {
+      return Math.round(
+        parsed * 100
+      );
     }
 
-    return clamp(Math.round(n), 0, 100);
+    return clamp(
+      Math.round(parsed),
+      0,
+      100
+    );
   }
 
   function emit(eventName, payload) {
-    const listeners = subscribers[eventName] || [];
+    const listeners =
+      subscribers[eventName] || [];
 
-    listeners.forEach(function (handler) {
-      try {
-        handler(payload);
-      } catch (error) {
-        console.warn(
-          MODULE_NAME + ": subscriber error",
-          error
-        );
+    listeners.forEach(
+      function (handler) {
+        try {
+          handler(payload);
+        } catch (error) {
+          console.warn(
+            MODULE_NAME +
+            ": subscriber error",
+            error
+          );
+        }
       }
-    });
+    );
   }
 
   /* ============================================================
    * LOCATION
    * ============================================================ */
+
+  function determineLocationLevel(location) {
+    const source = location || {};
+
+    if (
+      meaningful(source.property) ||
+      meaningful(source.propertyId) ||
+      meaningful(source.address)
+    ) {
+      return "property";
+    }
+
+    if (
+      meaningful(source.zip) ||
+      meaningful(source.zipCode) ||
+      meaningful(source.postalCode)
+    ) {
+      return "zip";
+    }
+
+    if (
+      meaningful(source.city) ||
+      meaningful(source.cityName)
+    ) {
+      return "city";
+    }
+
+    if (
+      meaningful(source.county) ||
+      meaningful(source.countyName)
+    ) {
+      return "county";
+    }
+
+    if (
+      meaningful(source.state) ||
+      meaningful(source.stateName) ||
+      meaningful(source.stateCode)
+    ) {
+      return "state";
+    }
+
+    return "";
+  }
 
   function normalizeLocation(input) {
     const source = input || {};
@@ -469,74 +503,43 @@
         null
       ),
 
-      level: determineLocationLevel(source),
+      level:
+        source.level ||
+        determineLocationLevel(source),
 
-      source: text(source.source)
+      source: text(
+        source.source
+      )
     };
   }
 
-  function determineLocationLevel(location) {
-    const source = location || {};
-
-    if (
-      meaningful(source.property) ||
-      meaningful(source.propertyId) ||
-      meaningful(source.address)
-    ) {
-      return "property";
-    }
-
-    if (
-      meaningful(source.zip) ||
-      meaningful(source.zipCode) ||
-      meaningful(source.postalCode)
-    ) {
-      return "zip";
-    }
-
-    if (
-      meaningful(source.city) ||
-      meaningful(source.cityName)
-    ) {
-      return "city";
-    }
-
-    if (
-      meaningful(source.county) ||
-      meaningful(source.countyName)
-    ) {
-      return "county";
-    }
-
-    if (
-      meaningful(source.state) ||
-      meaningful(source.stateName) ||
-      meaningful(source.stateCode)
-    ) {
-      return "state";
-    }
-
-    return "";
-  }
-
   function setLocation(location) {
-    state.location = normalizeLocation(
-      Object.assign(
-        {},
-        state.location,
-        location || {}
-      )
-    );
+    state.location =
+      normalizeLocation(
+        Object.assign(
+          {},
+          state.location,
+          location || {}
+        )
+      );
+
+    state.sourceData.location =
+      clone(state.location);
 
     state.metadata.updatedAt = now();
 
-    emit("locationChanged", getLocation());
+    emit(
+      "locationChanged",
+      getLocation()
+    );
 
     return getLocation();
   }
 
   function getLocation() {
-    return clone(state.location);
+    return clone(
+      state.location
+    );
   }
 
   /* ============================================================
@@ -544,15 +547,12 @@
    * ============================================================ */
 
   function normalizePriorities(input) {
-    const source = array(input);
-
     return unique(
-      source
-        .map(function (item) {
-          return String(item).trim();
-        })
+      array(input)
         .filter(function (item) {
-          return PRIORITIES.indexOf(item) !== -1;
+          return PRIORITIES.indexOf(
+            String(item).trim()
+          ) !== -1;
         })
     );
   }
@@ -561,85 +561,99 @@
     const source = input || {};
 
     return {
-      priorities: normalizePriorities(
-        source.priorities ||
-        source.priority ||
-        []
-      ),
-
-      budget: number(
-        source.budget,
-        null
-      ),
-
-      monthlyHousingBudget: number(
-        source.monthlyHousingBudget ||
-        source.monthlyRentBudget ||
-        source.monthlyHousing,
-        null
-      ),
-
-      maxHomePrice: number(
-        source.maxHomePrice ||
-        source.homePriceBudget,
-        null
-      ),
-
-      maxRent: number(
-        source.maxRent ||
-        source.rentBudget,
-        null
-      ),
-
-      desiredClimate: text(
-        source.desiredClimate ||
-        source.climate
-      ),
-
-      avoidRisks: unique(
-        array(
-          source.avoidRisks ||
-          source.riskAvoidance ||
+      priorities:
+        normalizePriorities(
+          source.priorities ||
+          source.priority ||
           []
+        ),
+
+      budget:
+        number(
+          source.budget,
+          null
+        ),
+
+      monthlyHousingBudget:
+        number(
+          source.monthlyHousingBudget ||
+          source.monthlyRentBudget ||
+          source.monthlyHousing,
+          null
+        ),
+
+      maxHomePrice:
+        number(
+          source.maxHomePrice ||
+          source.homePriceBudget,
+          null
+        ),
+
+      maxRent:
+        number(
+          source.maxRent ||
+          source.rentBudget,
+          null
+        ),
+
+      desiredClimate:
+        text(
+          source.desiredClimate ||
+          source.climate
+        ),
+
+      avoidRisks:
+        unique(
+          array(
+            source.avoidRisks ||
+            source.riskAvoidance ||
+            []
+          )
+        ),
+
+      businessType:
+        text(
+          source.businessType
+        ),
+
+      industry:
+        text(
+          source.industry
+        ),
+
+      propertyStrategy:
+        text(
+          source.propertyStrategy ||
+          source.strategy
+        ),
+
+      homeownership:
+        text(
+          source.homeownership ||
+          source.homeOwnership
+        ),
+
+      workMode:
+        text(
+          source.workMode
+        ),
+
+      notes:
+        text(
+          source.notes
         )
-      ),
-
-      businessType: text(
-        source.businessType
-      ),
-
-      industry: text(
-        source.industry
-      ),
-
-      propertyStrategy: text(
-        source.propertyStrategy ||
-        source.strategy
-      ),
-
-      homeownership: text(
-        source.homeownership ||
-        source.homeOwnership
-      ),
-
-      workMode: text(
-        source.workMode
-      ),
-
-      notes: text(
-        source.notes
-      )
     };
   }
 
   function setPreferences(preferences) {
-    state.preferences = normalizePreferences(
-      Object.assign(
-        {},
-        state.preferences,
-        preferences || {}
-      )
-    );
+    state.preferences =
+      normalizePreferences(
+        Object.assign(
+          {},
+          state.preferences,
+          preferences || {}
+        )
+      );
 
     state.metadata.updatedAt = now();
 
@@ -652,7 +666,9 @@
   }
 
   function getPreferences() {
-    return clone(state.preferences);
+    return clone(
+      state.preferences
+    );
   }
 
   /* ============================================================
@@ -663,30 +679,66 @@
     const source = data || {};
 
     return {
-      location: source.location || null,
-      climate: source.climate || null,
-      weather: source.weather || null,
-      risk: source.risk || null,
-      housing: source.housing || null,
+      location:
+        source.location || null,
+
+      climate:
+        source.climate || null,
+
+      weather:
+        source.weather || null,
+
+      risk:
+        source.risk || null,
+
+      housing:
+        source.housing || null,
+
       costOfLiving:
         source.costOfLiving ||
         source.cost_of_living ||
         source.cost ||
         null,
-      incentives: source.incentives || null,
-      business: source.business || null,
-      opportunity: source.opportunity || null,
-      property: source.property || null,
-      core: source.core || null
+
+      incentives:
+        source.incentives || null,
+
+      business:
+        source.business || null,
+
+      opportunity:
+        source.opportunity || null,
+
+      property:
+        source.property || null,
+
+      core:
+        source.core || null
     };
   }
 
   function setSourceData(data) {
-    state.sourceData = Object.assign(
-      {},
-      state.sourceData,
-      normalizeSourceData(data)
-    );
+    state.sourceData =
+      Object.assign(
+        {},
+        state.sourceData,
+        normalizeSourceData(data)
+      );
+
+    if (
+      meaningful(
+        state.sourceData.location
+      )
+    ) {
+      state.location =
+        normalizeLocation(
+          Object.assign(
+            {},
+            state.location,
+            state.sourceData.location
+          )
+        );
+    }
 
     state.metadata.updatedAt = now();
 
@@ -699,65 +751,75 @@
   }
 
   function getSourceData() {
-    return clone(state.sourceData);
+    return clone(
+      state.sourceData
+    );
   }
 
   /* ============================================================
    * MODULE BRIDGE
    * ============================================================ */
 
+  const MODULE_ALIASES = {
+    climate: [
+      "ROlyfeClimate",
+      "ROLYFE_CLIMATE"
+    ],
+
+    weather: [
+      "ROlyfeWeather",
+      "ROLYFE_WEATHER"
+    ],
+
+    risk: [
+      "ROlyfeRisk",
+      "ROLYFE_RISK"
+    ],
+
+    housing: [
+      "ROlyfeHousing",
+      "ROLYFE_HOUSING"
+    ],
+
+    incentives: [
+      "ROlyfeIncentives",
+      "ROLYFE_INCENTIVES"
+    ],
+
+    business: [
+      "ROlyfeBusiness",
+      "ROLYFE_BUSINESS"
+    ],
+
+    opportunity: [
+      "ROlyfeOpportunity",
+      "ROLYFE_OPPORTUNITY",
+      "ROlyfeOpportunityEngine"
+    ],
+
+    property: [
+      "ROlyfePropertyAnalysis",
+      "ROLYFE_PROPERTY_ANALYSIS"
+    ],
+
+    core: [
+      "ROlyfeCore",
+      "ROLYFE_CORE"
+    ]
+  };
+
   function getModule(name) {
-    const aliases = {
-      climate: [
-        "ROlyfeClimate",
-        "ROLYFE_CLIMATE"
-      ],
+    const candidates =
+      MODULE_ALIASES[name] || [];
 
-      weather: [
-        "ROlyfeWeather",
-        "ROLYFE_WEATHER"
-      ],
-
-      risk: [
-        "ROlyfeRisk",
-        "ROLYFE_RISK"
-      ],
-
-      housing: [
-        "ROlyfeHousing",
-        "ROLYFE_HOUSING"
-      ],
-
-      incentives: [
-        "ROlyfeIncentives",
-        "ROLYFE_INCENTIVES"
-      ],
-
-      business: [
-        "ROlyfeBusiness",
-        "ROLYFE_BUSINESS"
-      ],
-
-      opportunity: [
-        "ROlyfeOpportunity",
-        "ROLYFE_OPPORTUNITY"
-      ],
-
-      property: [
-        "ROlyfePropertyAnalysis",
-        "ROLYFE_PROPERTY_ANALYSIS"
-      ],
-
-      core: [
-        "ROlyfeCore",
-        "ROLYFE_CORE"
-      ]
-    };
-
-    const candidates = aliases[name] || [];
-
-    for (let i = 0; i < candidates.length; i += 1) {
-      if (window[candidates[i]]) {
+    for (
+      let i = 0;
+      i < candidates.length;
+      i += 1
+    ) {
+      if (
+        window[candidates[i]]
+      ) {
         return window[candidates[i]];
       }
     }
@@ -765,34 +827,54 @@
     return null;
   }
 
-  function safelyGetProfile(module, fallback) {
+  function safelyGetProfile(
+    module,
+    fallback
+  ) {
     if (!module) {
       return fallback || null;
     }
 
     try {
-      if (typeof module.getProfile === "function") {
+      if (
+        typeof module.getProfile ===
+        "function"
+      ) {
         return module.getProfile();
       }
 
-      if (typeof module.getResult === "function") {
+      if (
+        typeof module.getResult ===
+        "function"
+      ) {
         return module.getResult();
       }
 
-      if (typeof module.getAnalysis === "function") {
+      if (
+        typeof module.getAnalysis ===
+        "function"
+      ) {
         return module.getAnalysis();
       }
 
-      if (typeof module.getState === "function") {
-        const result = module.getState();
+      if (
+        typeof module.getState ===
+        "function"
+      ) {
+        const result =
+          module.getState();
 
-        return result && result.profile
+        return (
+          result &&
+          result.profile
+        )
           ? result.profile
           : result;
       }
     } catch (error) {
       console.warn(
-        MODULE_NAME + ": module read failed",
+        MODULE_NAME +
+        ": module read failed",
         error
       );
     }
@@ -803,68 +885,71 @@
   function collectAvailableModules() {
     const available = {};
 
-    [
-      "climate",
-      "weather",
-      "risk",
-      "housing",
-      "incentives",
-      "business",
-      "opportunity",
-      "property",
-      "core"
-    ].forEach(function (name) {
-      available[name] = Boolean(
-        getModule(name)
-      );
-    });
+    Object.keys(
+      MODULE_ALIASES
+    ).forEach(
+      function (name) {
+        available[name] =
+          Boolean(
+            getModule(name)
+          );
+      }
+    );
 
     return available;
   }
 
   function collectCoreContext() {
-    const core = getModule("core");
+    const core =
+      getModule("core");
 
     if (!core) {
-      return state.sourceData.core || null;
+      return state.sourceData.core ||
+        null;
     }
 
     try {
       if (
-        typeof core.buildSharedContext === "function"
+        typeof core.buildSharedContext ===
+        "function"
       ) {
         return core.buildSharedContext();
       }
 
       if (
-        typeof core.getAIContext === "function"
+        typeof core.getAIContext ===
+        "function"
       ) {
         return core.getAIContext();
       }
 
       if (
-        typeof core.getAnalysis === "function"
+        typeof core.getAnalysis ===
+        "function"
       ) {
         return core.getAnalysis();
       }
 
       if (
-        typeof core.getState === "function"
+        typeof core.getState ===
+        "function"
       ) {
         return core.getState();
       }
     } catch (error) {
       console.warn(
-        MODULE_NAME + ": core context unavailable",
+        MODULE_NAME +
+        ": core context unavailable",
         error
       );
     }
 
-    return state.sourceData.core || null;
+    return state.sourceData.core ||
+      null;
   }
 
   /* ============================================================
-   * DOMAIN ANALYZERS
+   * DOMAIN ANALYSIS
    * ============================================================ */
 
   function analyzeClimate() {
@@ -880,55 +965,58 @@
       source.profile ||
       source;
 
-    const temperature =
-      get(
-        profile,
-        "temperature",
-        null
-      );
+    return {
+      available:
+        meaningful(source),
 
-    const precipitation =
-      get(
-        profile,
-        "precipitation",
-        null
-      );
-
-    const seasons =
-      get(
-        profile,
-        "seasons",
-        []
-      );
-
-    const comfort =
-      normalizeScore(
+      temperature:
         get(
           profile,
-          "comfortScore",
+          "temperature",
+          null
+        ),
+
+      precipitation:
+        get(
+          profile,
+          "precipitation",
+          null
+        ),
+
+      seasons:
+        array(
           get(
             profile,
-            "score",
-            null
+            "seasons",
+            []
           )
         ),
-        null
-      );
 
-    return {
-      available: meaningful(source),
-      temperature: temperature,
-      precipitation: precipitation,
-      seasons: array(seasons),
-      comfortScore: comfort,
-      summary: text(
-        get(
-          profile,
-          "summary",
-          ""
-        )
-      ),
-      source: source
+      comfortScore:
+        normalizeScore(
+          get(
+            profile,
+            "comfortScore",
+            get(
+              profile,
+              "score",
+              null
+            )
+          ),
+          null
+        ),
+
+      summary:
+        text(
+          get(
+            profile,
+            "summary",
+            ""
+          )
+        ),
+
+      source:
+        source
     };
   }
 
@@ -945,54 +1033,66 @@
       source.profile ||
       source;
 
-    const current =
-      get(
-        profile,
-        "current",
-        {}
-      ) || {};
-
-    const forecast =
-      get(
-        profile,
-        "forecast",
-        []
-      );
-
     const alerts =
-      get(
-        profile,
-        "alerts",
-        []
-      );
-
-    const summary =
-      get(
-        profile,
-        "summary",
-        {}
+      array(
+        get(
+          profile,
+          "alerts",
+          []
+        )
       );
 
     return {
-      available: meaningful(source),
-      current: current,
-      forecast: array(forecast),
-      alerts: array(alerts),
-      alertCount: array(alerts).length,
-      conditions: get(
-        profile,
-        "conditions",
-        null
-      ),
-      summary: summary,
-      live: Boolean(
+      available:
+        meaningful(source),
+
+      current:
         get(
           profile,
-          "metadata.live",
-          false
-        )
-      ),
-      source: source
+          "current",
+          {}
+        ) || {},
+
+      forecast:
+        array(
+          get(
+            profile,
+            "forecast",
+            []
+          )
+        ),
+
+      alerts:
+        alerts,
+
+      alertCount:
+        alerts.length,
+
+      conditions:
+        get(
+          profile,
+          "conditions",
+          null
+        ),
+
+      summary:
+        get(
+          profile,
+          "summary",
+          {}
+        ),
+
+      live:
+        Boolean(
+          get(
+            profile,
+            "metadata.live",
+            false
+          )
+        ),
+
+      source:
+        source
     };
   }
 
@@ -1011,43 +1111,58 @@
 
     const exposures = {};
 
-    RISK_TYPES.forEach(function (riskType) {
-      const value =
-        get(
-          profile,
-          riskType,
+    RISK_TYPES.forEach(
+      function (riskType) {
+        const value =
           get(
             profile,
-            "risks." + riskType,
-            null
-          )
-        );
-
-      if (meaningful(value)) {
-        exposures[riskType] = value;
-      }
-    });
-
-    const scores = Object.keys(exposures)
-      .map(function (key) {
-        return normalizeScore(
-          exposures[key] &&
-          typeof exposures[key] === "object"
-            ? (
-              exposures[key].score ||
-              exposures[key].level
+            riskType,
+            get(
+              profile,
+              "risks." +
+              riskType,
+              null
             )
-            : exposures[key],
-          null
-        );
-      })
-      .filter(function (value) {
-        return value !== null;
-      });
+          );
+
+        if (
+          meaningful(value)
+        ) {
+          exposures[riskType] =
+            value;
+        }
+      }
+    );
+
+    const scores =
+      Object.keys(exposures)
+        .map(function (key) {
+          const value =
+            exposures[key];
+
+          return normalizeScore(
+            value &&
+            typeof value ===
+              "object"
+              ? (
+                value.score ||
+                value.level
+              )
+              : value,
+            null
+          );
+        })
+        .filter(function (value) {
+          return value !== null;
+        });
 
     return {
-      available: meaningful(source),
-      exposures: exposures,
+      available:
+        meaningful(source),
+
+      exposures:
+        exposures,
+
       overallScore:
         normalizeScore(
           get(
@@ -1061,22 +1176,30 @@
           ),
           null
         ),
-      hazardCount: Object.keys(exposures).length,
-      alerts: array(
-        get(
-          profile,
-          "alerts",
-          []
-        )
-      ),
-      summary: text(
-        get(
-          profile,
-          "summary",
-          ""
-        )
-      ),
-      source: source
+
+      hazardCount:
+        Object.keys(exposures).length,
+
+      alerts:
+        array(
+          get(
+            profile,
+            "alerts",
+            []
+          )
+        ),
+
+      summary:
+        text(
+          get(
+            profile,
+            "summary",
+            ""
+          )
+        ),
+
+      source:
+        source
     };
   }
 
@@ -1138,225 +1261,256 @@
     const priceToIncome =
       medianHomePrice &&
       medianIncome
-        ? medianHomePrice / medianIncome
+        ? medianHomePrice /
+          medianIncome
         : null;
 
     const monthlyBudget =
-      state.preferences.monthlyHousingBudget;
+      state.preferences
+        .monthlyHousingBudget;
 
     const rentBurden =
       monthlyBudget &&
       medianRent
-        ? medianRent / monthlyBudget
+        ? medianRent /
+          monthlyBudget
         : null;
 
     return {
-      available: meaningful(source),
-      medianHomePrice: medianHomePrice,
-      medianRent: medianRent,
-      averageHomePrice: number(
-        get(
-          profile,
-          "averageHomePrice",
+      available:
+        meaningful(source),
+
+      medianHomePrice:
+        medianHomePrice,
+
+      medianRent:
+        medianRent,
+
+      averageHomePrice:
+        number(
+          get(
+            profile,
+            "averageHomePrice",
+            null
+          ),
           null
         ),
-        null
-      ),
-      pricePerSquareFoot: number(
-        get(
-          profile,
-          "pricePerSquareFoot",
+
+      pricePerSquareFoot:
+        number(
+          get(
+            profile,
+            "pricePerSquareFoot",
+            null
+          ),
           null
         ),
-        null
-      ),
-      medianHouseholdIncome: medianIncome,
-      homeownershipRate: number(
-        get(
-          profile,
-          "homeownershipRate",
+
+      medianHouseholdIncome:
+        medianIncome,
+
+      homeownershipRate:
+        number(
+          get(
+            profile,
+            "homeownershipRate",
+            null
+          ),
           null
         ),
-        null
-      ),
-      vacancyRate: number(
-        get(
-          profile,
-          "vacancyRate",
+
+      vacancyRate:
+        number(
+          get(
+            profile,
+            "vacancyRate",
+            null
+          ),
           null
         ),
-        null
-      ),
-      inventory: number(
-        get(
-          profile,
-          "inventory",
+
+      inventory:
+        number(
+          get(
+            profile,
+            "inventory",
+            null
+          ),
           null
         ),
-        null
-      ),
-      daysOnMarket: number(
-        get(
-          profile,
-          "daysOnMarket",
+
+      daysOnMarket:
+        number(
+          get(
+            profile,
+            "daysOnMarket",
+            null
+          ),
           null
         ),
-        null
-      ),
-      priceToIncome: priceToIncome,
-      rentToBudgetRatio: rentBurden,
-      affordabilityScore: normalizeScore(
-        get(
-          profile,
-          "affordabilityScore",
+
+      priceToIncome:
+        priceToIncome,
+
+      rentToBudgetRatio:
+        rentBurden,
+
+      affordabilityScore:
+        normalizeScore(
+          get(
+            profile,
+            "affordabilityScore",
+            null
+          ),
           null
         ),
-        null
-      ),
-      summary: text(
-        get(
-          profile,
-          "summary",
-          ""
-        )
-      ),
-      source: source
+
+      summary:
+        text(
+          get(
+            profile,
+            "summary",
+            ""
+          )
+        ),
+
+      source:
+        source
     };
   }
 
   function analyzeCostOfLiving() {
     const source =
       state.sourceData.costOfLiving ||
-      safelyGetProfile(
-        null,
-        {}
-      ) ||
       {};
 
     const profile =
       source.profile ||
       source;
 
-    const overall =
-      number(
-        get(
-          profile,
-          "overall",
+    return {
+      available:
+        meaningful(source),
+
+      overall:
+        number(
           get(
             profile,
-            "index",
+            "overall",
             get(
               profile,
-              "costOfLivingIndex",
+              "index",
+              get(
+                profile,
+                "costOfLivingIndex",
+                null
+              )
+            )
+          ),
+          null
+        ),
+
+      housing:
+        number(
+          get(
+            profile,
+            "housing",
+            get(
+              profile,
+              "housingIndex",
               null
             )
-          )
-        ),
-        null
-      );
-
-    const housing =
-      number(
-        get(
-          profile,
-          "housing",
-          get(
-            profile,
-            "housingIndex",
-            null
-          )
-        ),
-        null
-      );
-
-    const utilities =
-      number(
-        get(
-          profile,
-          "utilities",
-          get(
-            profile,
-            "utilitiesIndex",
-            null
-          )
-        ),
-        null
-      );
-
-    const transportation =
-      number(
-        get(
-          profile,
-          "transportation",
-          get(
-            profile,
-            "transportationIndex",
-            null
-          )
-        ),
-        null
-      );
-
-    const groceries =
-      number(
-        get(
-          profile,
-          "groceries",
-          get(
-            profile,
-            "groceriesIndex",
-            null
-          )
-        ),
-        null
-      );
-
-    const healthcare =
-      number(
-        get(
-          profile,
-          "healthcare",
-          get(
-            profile,
-            "healthcareIndex",
-            null
-          )
-        ),
-        null
-      );
-
-    return {
-      available: meaningful(source),
-      overall: overall,
-      housing: housing,
-      utilities: utilities,
-      transportation: transportation,
-      groceries: groceries,
-      healthcare: healthcare,
-      medianIncome: number(
-        get(
-          profile,
-          "medianIncome",
+          ),
           null
         ),
-        null
-      ),
-      purchasingPower: number(
-        get(
-          profile,
-          "purchasingPower",
+
+      utilities:
+        number(
+          get(
+            profile,
+            "utilities",
+            get(
+              profile,
+              "utilitiesIndex",
+              null
+            )
+          ),
           null
         ),
-        null
-      ),
-      summary: text(
-        get(
-          profile,
-          "summary",
-          ""
-        )
-      ),
-      source: source
+
+      transportation:
+        number(
+          get(
+            profile,
+            "transportation",
+            get(
+              profile,
+              "transportationIndex",
+              null
+            )
+          ),
+          null
+        ),
+
+      groceries:
+        number(
+          get(
+            profile,
+            "groceries",
+            get(
+              profile,
+              "groceriesIndex",
+              null
+            )
+          ),
+          null
+        ),
+
+      healthcare:
+        number(
+          get(
+            profile,
+            "healthcare",
+            get(
+              profile,
+              "healthcareIndex",
+              null
+            )
+          ),
+          null
+        ),
+
+      medianIncome:
+        number(
+          get(
+            profile,
+            "medianIncome",
+            null
+          ),
+          null
+        ),
+
+      purchasingPower:
+        number(
+          get(
+            profile,
+            "purchasingPower",
+            null
+          ),
+          null
+        ),
+
+      summary:
+        text(
+          get(
+            profile,
+            "summary",
+            ""
+          )
+        ),
+
+      source:
+        source
     };
   }
 
@@ -1378,44 +1532,46 @@
         get(
           profile,
           "programs",
-          get(
-            source,
-            "programs",
-            []
-          )
+          []
         )
       );
 
-    return {
-      available: meaningful(source),
-      programs: programs,
-      programCount: programs.length,
-      matchedPrograms: array(
-        get(
-          profile,
-          "matches",
-          get(
-            source,
-            "matches",
-            []
-          )
-        )
-      ),
-      matchCount: array(
+    const matches =
+      array(
         get(
           profile,
           "matches",
           []
         )
-      ).length,
-      summary: text(
-        get(
-          profile,
-          "summary",
-          ""
-        )
-      ),
-      source: source
+      );
+
+    return {
+      available:
+        meaningful(source),
+
+      programs:
+        programs,
+
+      programCount:
+        programs.length,
+
+      matchedPrograms:
+        matches,
+
+      matchCount:
+        matches.length,
+
+      summary:
+        text(
+          get(
+            profile,
+            "summary",
+            ""
+          )
+        ),
+
+      source:
+        source
     };
   }
 
@@ -1437,26 +1593,21 @@
         get(
           profile,
           "matches",
-          get(
-            source,
-            "matches",
-            []
-          )
+          []
         )
       );
 
     return {
-      available: meaningful(source),
+      available:
+        meaningful(source),
+
       economicData:
         get(
           profile,
           "economicData",
-          get(
-            source,
-            "economicData",
-            {}
-          )
+          {}
         ),
+
       businessReadiness:
         normalizeScore(
           get(
@@ -1466,6 +1617,7 @@
           ),
           null
         ),
+
       economicCoverage:
         normalizeScore(
           get(
@@ -1475,6 +1627,7 @@
           ),
           null
         ),
+
       fundingCoverage:
         normalizeScore(
           get(
@@ -1484,6 +1637,7 @@
           ),
           null
         ),
+
       incentiveCoverage:
         normalizeScore(
           get(
@@ -1493,6 +1647,7 @@
           ),
           null
         ),
+
       industryCoverage:
         normalizeScore(
           get(
@@ -1502,16 +1657,24 @@
           ),
           null
         ),
-      matches: matches,
-      matchCount: matches.length,
-      summary: text(
-        get(
-          profile,
-          "summary",
-          ""
-        )
-      ),
-      source: source
+
+      matches:
+        matches,
+
+      matchCount:
+        matches.length,
+
+      summary:
+        text(
+          get(
+            profile,
+            "summary",
+            ""
+          )
+        ),
+
+      source:
+        source
     };
   }
 
@@ -1529,49 +1692,64 @@
       source;
 
     return {
-      available: meaningful(source),
-      score: normalizeScore(
-        get(
-          profile,
-          "score",
+      available:
+        meaningful(source),
+
+      score:
+        normalizeScore(
           get(
             profile,
-            "opportunityScore",
-            null
+            "score",
+            get(
+              profile,
+              "opportunityScore",
+              null
+            )
+          ),
+          null
+        ),
+
+      categories:
+        array(
+          get(
+            profile,
+            "categories",
+            []
           )
         ),
-        null
-      ),
-      categories: array(
+
+      realEstate:
         get(
           profile,
-          "categories",
-          []
-        )
-      ),
-      realEstate: get(
-        profile,
-        "realEstate",
-        {}
-      ),
-      business: get(
-        profile,
-        "business",
-        {}
-      ),
-      development: get(
-        profile,
-        "development",
-        {}
-      ),
-      summary: text(
+          "realEstate",
+          {}
+        ),
+
+      business:
         get(
           profile,
-          "summary",
-          ""
-        )
-      ),
-      source: source
+          "business",
+          {}
+        ),
+
+      development:
+        get(
+          profile,
+          "development",
+          {}
+        ),
+
+      summary:
+        text(
+          get(
+            profile,
+            "summary",
+            ""
+          )
+        ),
+
+      source:
+        source
     };
   }
 
@@ -1589,55 +1767,66 @@
       source;
 
     return {
-      available: meaningful(source),
-      address: text(
-        get(
-          profile,
-          "property.address",
+      available:
+        meaningful(source),
+
+      address:
+        text(
           get(
             profile,
-            "address",
-            ""
+            "property.address",
+            get(
+              profile,
+              "address",
+              ""
+            )
           )
-        )
-      ),
+        ),
+
       financial:
         get(
           profile,
           "financial",
           {}
         ),
+
       market:
         get(
           profile,
           "market",
           {}
         ),
+
       physical:
         get(
           profile,
           "physical",
           {}
         ),
+
       risk:
         get(
           profile,
           "risk",
           {}
         ),
-      summary: text(
-        get(
-          profile,
-          "summary",
-          ""
-        )
-      ),
-      source: source
+
+      summary:
+        text(
+          get(
+            profile,
+            "summary",
+            ""
+          )
+        ),
+
+      source:
+        source
     };
   }
 
   /* ============================================================
-   * FINANCIAL ANALYSIS
+   * FINANCIAL / LIFESTYLE
    * ============================================================ */
 
   function buildFinancialAnalysis(
@@ -1664,7 +1853,8 @@
 
     const monthlyBudget =
       number(
-        state.preferences.monthlyHousingBudget,
+        state.preferences
+          .monthlyHousingBudget,
         null
       );
 
@@ -1679,20 +1869,16 @@
     if (
       costOfLiving.overall !== null
     ) {
-      /*
-       * Approximation only.
-       *
-       * 100 is treated as a neutral reference point.
-       * This is not a financial recommendation.
-       */
-      costScore = clamp(
-        100 -
-        (
-          costOfLiving.overall - 100
-        ),
-        0,
-        100
-      );
+      costScore =
+        clamp(
+          100 -
+          (
+            costOfLiving.overall -
+            100
+          ),
+          0,
+          100
+        );
     }
 
     return {
@@ -1700,9 +1886,14 @@
         housing.available ||
         costOfLiving.available,
 
-      homePrice: homePrice,
-      rent: rent,
-      income: income,
+      homePrice:
+        homePrice,
+
+      rent:
+        rent,
+
+      income:
+        income,
 
       priceToIncome:
         housing.priceToIncome,
@@ -1716,7 +1907,8 @@
       costOfLivingIndex:
         costOfLiving.overall,
 
-      costScore: costScore,
+      costScore:
+        costScore,
 
       purchasingPower:
         costOfLiving.purchasingPower,
@@ -1731,43 +1923,36 @@
     };
   }
 
-  /* ============================================================
-   * LIFESTYLE
-   * ============================================================ */
-
   function analyzeLifestyle() {
-    const priorities =
-      state.preferences.priorities;
-
-    const climate =
-      state.sourceData.climate ||
-      {};
-
-    const quality =
-      get(
-        climate,
-        "qualityOfLife",
-        null
-      );
-
     return {
       priorityCount:
-        priorities.length,
+        state.preferences
+          .priorities.length,
 
       priorities:
-        clone(priorities),
+        clone(
+          state.preferences
+            .priorities
+        ),
 
       desiredClimate:
-        state.preferences.desiredClimate,
+        state.preferences
+          .desiredClimate,
 
       workMode:
-        state.preferences.workMode,
+        state.preferences
+          .workMode,
 
       homeownership:
-        state.preferences.homeownership,
+        state.preferences
+          .homeownership,
 
       qualityOfLife:
-        quality,
+        get(
+          state.sourceData,
+          "climate.qualityOfLife",
+          null
+        ),
 
       notes:
         state.preferences.notes
@@ -1775,10 +1960,12 @@
   }
 
   /* ============================================================
-   * FIT CALCULATIONS
+   * FIT ENGINE
    * ============================================================ */
 
-  function calculateHousingFit(housing) {
+  function calculateHousingFit(
+    housing
+  ) {
     if (
       !housing ||
       !housing.available
@@ -1840,31 +2027,9 @@
     return average(scores);
   }
 
-  function calculateCostFit(cost) {
-    if (
-      !cost ||
-      !cost.available
-    ) {
-      return null;
-    }
-
-    if (
-      cost.overall !== null
-    ) {
-      return clamp(
-        100 -
-        (
-          cost.overall - 100
-        ),
-        0,
-        100
-      );
-    }
-
-    return null;
-  }
-
-  function calculateClimateFit(climate) {
+  function calculateClimateFit(
+    climate
+  ) {
     if (
       !climate ||
       !climate.available
@@ -1872,16 +2037,12 @@
       return null;
     }
 
-    if (
-      climate.comfortScore !== null
-    ) {
-      return climate.comfortScore;
-    }
-
-    return null;
+    return climate.comfortScore;
   }
 
-  function calculateWeatherFit(weather) {
+  function calculateWeatherFit(
+    weather
+  ) {
     if (
       !weather ||
       !weather.available
@@ -1889,46 +2050,33 @@
       return null;
     }
 
-    if (
-      weather.alertCount > 0
-    ) {
-      return 45;
-    }
-
-    return 75;
+    return weather.alertCount > 0
+      ? 45
+      : 75;
   }
 
-  function calculateRiskFit(risk) {
+  function calculateRiskFit(
+    risk
+  ) {
     if (
       !risk ||
-      !risk.available
+      !risk.available ||
+      risk.overallScore === null
     ) {
       return null;
     }
 
-    const score =
-      normalizeScore(
-        risk.overallScore,
-        null
-      );
-
-    if (score === null) {
-      return null;
-    }
-
-    /*
-     * Risk score semantics vary by source.
-     * The engine treats lower exposure as better only
-     * when the upstream module explicitly supplies a score.
-     */
     return clamp(
-      100 - score,
+      100 -
+      risk.overallScore,
       0,
       100
     );
   }
 
-  function calculateBusinessFit(business) {
+  function calculateBusinessFit(
+    business
+  ) {
     if (
       !business ||
       !business.available
@@ -1946,14 +2094,14 @@
       return value !== null;
     });
 
-    if (!scores.length) {
-      return null;
-    }
-
-    return average(scores);
+    return scores.length
+      ? average(scores)
+      : null;
   }
 
-  function calculateIncentiveFit(incentives) {
+  function calculateIncentiveFit(
+    incentives
+  ) {
     if (
       !incentives ||
       !incentives.available
@@ -1966,9 +2114,7 @@
     ) {
       return clamp(
         50 +
-        (
-          incentives.matchCount * 10
-        ),
+        incentives.matchCount * 10,
         0,
         100
       );
@@ -1983,7 +2129,9 @@
     return 35;
   }
 
-  function calculateOpportunityFit(opportunity) {
+  function calculateOpportunityFit(
+    opportunity
+  ) {
     if (
       !opportunity ||
       !opportunity.available
@@ -1994,7 +2142,9 @@
     return opportunity.score;
   }
 
-  function calculatePropertyFit(property) {
+  function calculatePropertyFit(
+    property
+  ) {
     if (
       !property ||
       !property.available
@@ -2049,11 +2199,139 @@
     return average(scores);
   }
 
+  function calculatePriorityWeight(
+    domain
+  ) {
+    if (
+      !state.preferences
+        .priorities.length
+    ) {
+      return 1;
+    }
+
+    return state.preferences
+      .priorities
+      .indexOf(domain) !== -1
+      ? 1.5
+      : 1;
+  }
+
+  function calculateOverallFit(
+    fit
+  ) {
+    const values = [];
+    const weights = [];
+
+    Object.keys(fit).forEach(
+      function (domain) {
+        if (
+          domain === "overall" ||
+          domain === "confidence" ||
+          domain === "coverage"
+        ) {
+          return;
+        }
+
+        if (
+          fit[domain] === null ||
+          fit[domain] === undefined
+        ) {
+          return;
+        }
+
+        values.push(
+          fit[domain]
+        );
+
+        weights.push(
+          calculatePriorityWeight(
+            domain
+          )
+        );
+      }
+    );
+
+    if (!values.length) {
+      return null;
+    }
+
+    let numerator = 0;
+    let denominator = 0;
+
+    values.forEach(
+      function (value, index) {
+        numerator +=
+          value *
+          weights[index];
+
+        denominator +=
+          weights[index];
+      }
+    );
+
+    return denominator
+      ? Math.round(
+        numerator /
+        denominator
+      )
+      : null;
+  }
+
+  function calculateCoverage(
+    analysis
+  ) {
+    const domains =
+      DOMAIN_ORDER.filter(
+        function (domain) {
+          return (
+            domain !== "lifestyle" &&
+            domain !== "financial"
+          );
+        }
+      );
+
+    const available =
+      domains.filter(
+        function (domain) {
+          return Boolean(
+            analysis[domain] &&
+            analysis[domain].available
+          );
+        }
+      ).length;
+
+    return domains.length
+      ? Math.round(
+        (
+          available /
+          domains.length
+        ) * 100
+      )
+      : 0;
+  }
+
+  function calculateConfidence(
+    coverage,
+    gapCount
+  ) {
+    return clamp(
+      coverage -
+      Math.min(
+        30,
+        gapCount * 5
+      ),
+      0,
+      100
+    );
+  }
+
   /* ============================================================
-   * SIGNAL ENGINE
+   * SIGNALS
    * ============================================================ */
 
-  function buildSignals(analysis) {
+  function buildSignals(
+    analysis
+  ) {
     const signals = [];
 
     function add(
@@ -2071,16 +2349,22 @@
           "-" +
           signals.length,
 
-        type: type,
-        domain: domain,
-        message: message,
-        value: value !== undefined
-          ? value
-          : null,
+        type:
+          type,
+
+        domain:
+          domain,
+
+        message:
+          message,
+
+        value:
+          value !== undefined
+            ? value
+            : null,
 
         severity:
-          severity ||
-          "info"
+          severity || "info"
       });
     }
 
@@ -2168,7 +2452,7 @@
       add(
         "alert",
         "weather",
-        "Active weather alerts are present and should be checked before acting on current conditions.",
+        "Active weather alerts are present and should be checked separately from long-term climate.",
         weather.alertCount,
         "caution"
       );
@@ -2234,11 +2518,8 @@
       );
     }
 
-    const property =
-      analysis.property;
-
     if (
-      property.available
+      analysis.property.available
     ) {
       add(
         "property",
@@ -2256,10 +2537,12 @@
   }
 
   /* ============================================================
-   * FINDINGS
+   * FINDINGS / TRADEOFFS / GAPS / ACTIONS
    * ============================================================ */
 
-  function buildFindings(analysis) {
+  function buildFindings(
+    analysis
+  ) {
     const findings = [];
 
     function add(
@@ -2273,10 +2556,17 @@
           "finding-" +
           findings.length,
 
-        domain: domain,
-        title: title,
-        message: message,
-        type: type || "observation"
+        domain:
+          domain,
+
+        title:
+          title,
+
+        message:
+          message,
+
+        type:
+          type || "observation"
       });
     }
 
@@ -2301,7 +2591,7 @@
         add(
           "housing",
           "Housing affordability requires review",
-          "The home-price-to-income relationship suggests affordability should be evaluated against the user's actual income and financing assumptions.",
+          "The home-price-to-income relationship should be evaluated against actual income and financing assumptions.",
           "caution"
         );
       } else {
@@ -2314,72 +2604,57 @@
       }
     }
 
-    const cost =
-      analysis.costOfLiving;
-
     if (
-      cost.overall !== null
+      analysis.costOfLiving.overall !== null
     ) {
       add(
         "costOfLiving",
         "Cost-of-living context",
-        "Cost-of-living data can be compared with housing, income, taxes, and purchasing power rather than viewed in isolation.",
+        "Cost-of-living data should be compared with housing, income, taxes, and purchasing power.",
         "observation"
       );
     }
 
-    const weather =
-      analysis.weather;
-
     if (
-      weather.alertCount > 0
+      analysis.weather.alertCount > 0
     ) {
       add(
         "weather",
         "Current conditions require attention",
-        "The location currently has active weather alerts in the available live-weather data.",
+        "The available weather data contains active alerts.",
         "caution"
       );
     }
 
-    const risk =
-      analysis.risk;
-
     if (
-      risk.hazardCount > 0
+      analysis.risk.hazardCount > 0
     ) {
       add(
         "risk",
         "Hazard profile available",
-        "The location has multiple hazard dimensions that should be considered separately rather than collapsed into one number.",
+        "Multiple hazard dimensions are available and should be considered separately.",
         "observation"
       );
     }
 
-    const business =
-      analysis.business;
-
     if (
-      business.matchCount > 0
+      analysis.business.matchCount > 0
     ) {
       add(
         "business",
         "Business opportunity data",
-        "Potential business-program matches are available based on the current business profile.",
+        "Potential business-program matches are available based on the current profile.",
         "positive"
       );
     }
 
-    const incentives =
-      analysis.incentives;
-
     if (
-      incentives.programCount > 0
+      analysis.incentives.programCount > 0
     ) {
       add(
         "incentives",
         "Incentive ecosystem detected",
-        "Programs exist in the available data, but eligibility, funding availability, deadlines, and application requirements must be verified.",
+        "Programs exist in the available data, but eligibility and funding status must be verified.",
         "observation"
       );
     }
@@ -2390,11 +2665,9 @@
     );
   }
 
-  /* ============================================================
-   * TRADEOFF ENGINE
-   * ============================================================ */
-
-  function buildTradeoffs(analysis) {
+  function buildTradeoffs(
+    analysis
+  ) {
     const tradeoffs = [];
 
     function add(
@@ -2408,10 +2681,17 @@
           "tradeoff-" +
           tradeoffs.length,
 
-        domain: domain,
-        title: title,
-        benefit: benefit,
-        consideration: consideration
+        domain:
+          domain,
+
+        title:
+          title,
+
+        benefit:
+          benefit,
+
+        consideration:
+          consideration
       });
     }
 
@@ -2479,11 +2759,9 @@
     );
   }
 
-  /* ============================================================
-   * DATA GAP ENGINE
-   * ============================================================ */
-
-  function buildGaps(analysis) {
+  function buildGaps(
+    analysis
+  ) {
     const gaps = [];
 
     function add(
@@ -2496,11 +2774,14 @@
           "gap-" +
           gaps.length,
 
-        domain: domain,
-        message: message,
+        domain:
+          domain,
+
+        message:
+          message,
+
         importance:
-          importance ||
-          "medium"
+          importance || "medium"
       });
     }
 
@@ -2585,9 +2866,9 @@
     }
 
     if (
-      !meaningful(state.location.name) &&
-      !meaningful(state.location.city) &&
-      !meaningful(state.location.state)
+      !state.location.name &&
+      !state.location.city &&
+      !state.location.state
     ) {
       add(
         "location",
@@ -2612,10 +2893,6 @@
     );
   }
 
-  /* ============================================================
-   * ACTION ENGINE
-   * ============================================================ */
-
   function buildActions(
     analysis,
     gaps
@@ -2632,11 +2909,14 @@
           "action-" +
           actions.length,
 
-        domain: domain,
-        action: action,
+        domain:
+          domain,
+
+        action:
+          action,
+
         priority:
-          priority ||
-          "medium"
+          priority || "medium"
       });
     }
 
@@ -2665,7 +2945,7 @@
     ) {
       add(
         "weather",
-        "Check current and near-term weather conditions separately from long-term climate.",
+        "Check current and near-term weather separately from long-term climate.",
         "medium"
       );
     }
@@ -2727,159 +3007,12 @@
   }
 
   /* ============================================================
-   * FIT ENGINE
-   * ============================================================ */
-
-  function calculatePriorityWeight(domain) {
-    if (
-      !state.preferences.priorities.length
-    ) {
-      return 1;
-    }
-
-    return state.preferences.priorities.indexOf(
-      domain
-    ) !== -1
-      ? 1.5
-      : 1;
-  }
-
-  function calculateDomainFit(
-    domain,
-    score
-  ) {
-    if (
-      score === null ||
-      score === undefined
-    ) {
-      return null;
-    }
-
-    return clamp(
-      score,
-      0,
-      100
-    );
-  }
-
-  function calculateOverallFit(fit) {
-    const values = [];
-    const weights = [];
-
-    Object.keys(fit).forEach(function (domain) {
-      if (
-        domain === "overall" ||
-        domain === "confidence" ||
-        domain === "coverage"
-      ) {
-        return;
-      }
-
-      const value =
-        fit[domain];
-
-      if (
-        value === null ||
-        value === undefined
-      ) {
-        return;
-      }
-
-      const weight =
-        calculatePriorityWeight(
-          domain
-        );
-
-      values.push(value);
-      weights.push(weight);
-    });
-
-    if (!values.length) {
-      return null;
-    }
-
-    let numerator = 0;
-    let denominator = 0;
-
-    values.forEach(function (value, index) {
-      numerator +=
-        value *
-        weights[index];
-
-      denominator +=
-        weights[index];
-    });
-
-    return denominator
-      ? Math.round(
-        numerator /
-        denominator
-      )
-      : null;
-  }
-
-  function calculateCoverage(analysis) {
-    const domains = DOMAIN_ORDER.filter(
-      function (domain) {
-        return (
-          domain !== "lifestyle" &&
-          domain !== "financial"
-        );
-      }
-    );
-
-    const available =
-      domains.filter(
-        function (domain) {
-          return Boolean(
-            analysis[domain] &&
-            analysis[domain].available
-          );
-        }
-      ).length;
-
-    return domains.length
-      ? Math.round(
-        (
-          available /
-          domains.length
-        ) * 100
-      )
-      : 0;
-  }
-
-  function calculateConfidence(
-    coverage,
-    gapCount
-  ) {
-    let confidence =
-      coverage;
-
-    if (
-      gapCount > 0
-    ) {
-      confidence -=
-        Math.min(
-          30,
-          gapCount * 5
-        );
-    }
-
-    return clamp(
-      confidence,
-      0,
-      100
-    );
-  }
-
-  /* ============================================================
    * SUMMARY
    * ============================================================ */
 
   function buildSummary(
     analysis,
     fit,
-    signals,
     tradeoffs,
     gaps,
     actions
@@ -2931,29 +3064,28 @@
 
     const considerations = [];
 
-    tradeoffs.forEach(function (tradeoff) {
-      if (
-        tradeoff.consideration
-      ) {
-        considerations.push(
+    tradeoffs.forEach(
+      function (tradeoff) {
+        if (
           tradeoff.consideration
-        );
+        ) {
+          considerations.push(
+            tradeoff.consideration
+          );
+        }
       }
-    });
+    );
 
     gaps.slice(
       0,
       5
-    ).forEach(function (gap) {
-      considerations.push(
-        gap.message
-      );
-    });
-
-    const overview =
-      "RO’Lyfe analyzed " +
-      locationName +
-      " across location, housing, cost, climate, weather, risk, business, incentives, opportunity, and property layers where data was available.";
+    ).forEach(
+      function (gap) {
+        considerations.push(
+          gap.message
+        );
+      }
+    );
 
     return {
       headline:
@@ -2961,7 +3093,9 @@
         locationName,
 
       overview:
-        overview,
+        "RO’Lyfe analyzed " +
+        locationName +
+        " across location, housing, cost, climate, weather, risk, business, incentives, opportunity, and property layers where data was available.",
 
       strengths:
         unique(strengths),
@@ -2975,9 +3109,11 @@
         actions.slice(
           0,
           5
-        ).map(function (item) {
-          return item.action;
-        })
+        ).map(
+          function (item) {
+            return item.action;
+          }
+        )
     };
   }
 
@@ -2986,11 +3122,12 @@
    * ============================================================ */
 
   function buildAIContext() {
-    const analysis = state.analysis;
-
     const context = {
-      module: MODULE_NAME,
-      version: VERSION,
+      module:
+        MODULE_NAME,
+
+      version:
+        VERSION,
 
       purpose:
         "Provide structured location intelligence for AI interpretation.",
@@ -3001,40 +3138,8 @@
       preferences:
         clone(state.preferences),
 
-      analysis: {
-        lifestyle:
-          clone(analysis.lifestyle),
-
-        financial:
-          clone(analysis.financial),
-
-        housing:
-          clone(analysis.housing),
-
-        costOfLiving:
-          clone(analysis.costOfLiving),
-
-        climate:
-          clone(analysis.climate),
-
-        weather:
-          clone(analysis.weather),
-
-        risk:
-          clone(analysis.risk),
-
-        business:
-          clone(analysis.business),
-
-        incentives:
-          clone(analysis.incentives),
-
-        opportunity:
-          clone(analysis.opportunity),
-
-        property:
-          clone(analysis.property)
-      },
+      analysis:
+        clone(state.analysis),
 
       fit:
         clone(state.fit),
@@ -3077,7 +3182,8 @@
       ]
     };
 
-    state.aiContext = context;
+    state.aiContext =
+      context;
 
     emit(
       "aiContextBuilt",
@@ -3089,17 +3195,17 @@
 
   function getAIContext() {
     return clone(
-      state.aiContext ||
-      buildAIContext()
+      state.aiContext &&
+      Object.keys(
+        state.aiContext
+      ).length
+        ? state.aiContext
+        : buildAIContext()
     );
   }
 
-  /* ============================================================
-   * SHARED CONTEXT
-   * ============================================================ */
-
   function buildSharedContext() {
-    const context = {
+    return {
       module:
         MODULE_NAME,
 
@@ -3139,18 +3245,18 @@
       aiContext:
         getAIContext()
     };
-
-    return context;
   }
 
   /* ============================================================
-   * MAIN ANALYSIS PIPELINE
+   * MAIN ANALYSIS
    * ============================================================ */
 
   function analyze(options) {
-    const opts = options || {};
+    const opts =
+      options || {};
 
-    state.status = "analyzing";
+    state.status =
+      "analyzing";
 
     if (
       opts.location
@@ -3182,19 +3288,6 @@
       state.sourceData.core =
         opts.core;
     }
-
-    /*
-     * ----------------------------------------------------------
-     * IMPORTANT:
-     *
-     * Compute every domain into local variables FIRST.
-     *
-     * The previous version calculated financial analysis while
-     * housing was still the previous state.analysis.housing.
-     *
-     * v1.1.0 fixes that sequencing issue.
-     * ----------------------------------------------------------
-     */
 
     const lifestyle =
       analyzeLifestyle();
@@ -3231,13 +3324,6 @@
         housing,
         costOfLiving
       );
-
-    /*
-     * ----------------------------------------------------------
-     * Assign the complete analysis only after every domain has
-     * been calculated.
-     * ----------------------------------------------------------
-     */
 
     state.analysis = {
       lifestyle:
@@ -3301,90 +3387,63 @@
       );
 
     const fit = {
-      overall: null,
+      overall:
+        null,
 
       lifestyle:
-        calculateDomainFit(
-          "lifestyle",
-          75
-        ),
+        75,
 
       financial:
-        calculateDomainFit(
-          "financial",
-          average([
-            financial.costScore,
-            housing.affordabilityScore
-          ])
-        ),
+        average([
+          financial.costScore,
+          housing.affordabilityScore
+        ]),
 
       housing:
-        calculateDomainFit(
-          "housing",
-          calculateHousingFit(
-            housing
-          )
+        calculateHousingFit(
+          housing
         ),
 
       climate:
-        calculateDomainFit(
-          "climate",
-          calculateClimateFit(
-            climate
-          )
+        calculateClimateFit(
+          climate
         ),
 
       weather:
-        calculateDomainFit(
-          "weather",
-          calculateWeatherFit(
-            weather
-          )
+        calculateWeatherFit(
+          weather
         ),
 
       risk:
-        calculateDomainFit(
-          "risk",
-          calculateRiskFit(
-            risk
-          )
+        calculateRiskFit(
+          risk
         ),
 
       business:
-        calculateDomainFit(
-          "business",
-          calculateBusinessFit(
-            business
-          )
+        calculateBusinessFit(
+          business
         ),
 
       incentives:
-        calculateDomainFit(
-          "incentives",
-          calculateIncentiveFit(
-            incentives
-          )
+        calculateIncentiveFit(
+          incentives
         ),
 
       opportunity:
-        calculateDomainFit(
-          "opportunity",
-          calculateOpportunityFit(
-            opportunity
-          )
+        calculateOpportunityFit(
+          opportunity
         ),
 
       property:
-        calculateDomainFit(
-          "property",
-          calculatePropertyFit(
-            property
-          )
+        calculatePropertyFit(
+          property
         ),
 
-      confidence: null,
+      confidence:
+        null,
 
-      coverage: null
+      coverage:
+        null
     };
 
     fit.coverage =
@@ -3403,13 +3462,13 @@
         fit
       );
 
-    state.fit = fit;
+    state.fit =
+      fit;
 
     state.summary =
       buildSummary(
         state.analysis,
         state.fit,
-        state.signals,
         state.tradeoffs,
         state.gaps,
         state.actions
@@ -3430,8 +3489,11 @@
     state.metadata.updatedAt =
       now();
 
-    state.status = "ready";
-    state.initialized = true;
+    state.status =
+      "ready";
+
+    state.initialized =
+      true;
 
     persist();
 
@@ -3443,10 +3505,6 @@
     return getResult();
   }
 
-  /* ============================================================
-   * CORE ANALYSIS
-   * ============================================================ */
-
   function analyzeFromCore() {
     const context =
       collectCoreContext();
@@ -3457,34 +3515,34 @@
     }
 
     return analyze({
-      core: context
+      core:
+        context
     });
   }
 
   /* ============================================================
-   * SOURCE COUNT
+   * STATE
    * ============================================================ */
 
   function countSources() {
     return Object.keys(
       state.sourceData
-    ).filter(function (key) {
-      return meaningful(
-        state.sourceData[key]
-      );
-    }).length;
+    ).filter(
+      function (key) {
+        return meaningful(
+          state.sourceData[key]
+        );
+      }
+    ).length;
   }
 
-  /* ============================================================
-   * CONFIGURATION
-   * ============================================================ */
-
   function configure(options) {
-    config = Object.assign(
-      {},
-      config,
-      options || {}
-    );
+    config =
+      Object.assign(
+        {},
+        config,
+        options || {}
+      );
 
     state.metadata.updatedAt =
       now();
@@ -3495,10 +3553,6 @@
   function getConfig() {
     return clone(config);
   }
-
-  /* ============================================================
-   * STATE / GETTERS
-   * ============================================================ */
 
   function getState() {
     return clone(state);
@@ -3647,15 +3701,6 @@
     );
   }
 
-  /*
-   * Compatibility helper.
-   *
-   * Some surrounding modules look for getProfile().
-   * The location-analysis module historically exposed the
-   * analysis through getResult()/getAnalysis(), but providing
-   * getProfile() makes module discovery more resilient.
-   */
-
   function getProfile() {
     return {
       location:
@@ -3751,63 +3796,98 @@
         JSON.parse(raw);
 
       if (
-        saved &&
-        saved.state
+        !saved ||
+        !saved.state
       ) {
-        state = Object.assign(
-          createInitialState(),
+        return false;
+      }
+
+      const defaults =
+        createInitialState();
+
+      state =
+        Object.assign(
+          defaults,
           saved.state
         );
 
-        state.metadata =
-          Object.assign(
-            {},
-            createInitialState().metadata,
-            saved.state.metadata || {}
-          );
+      state.metadata =
+        Object.assign(
+          {},
+          defaults.metadata,
+          saved.state.metadata || {}
+        );
 
-        state.analysis =
-          Object.assign(
-            {},
-            createInitialState().analysis,
-            saved.state.analysis || {}
-          );
+      state.location =
+        Object.assign(
+          {},
+          defaults.location,
+          saved.state.location || {}
+        );
 
-        state.location =
-          Object.assign(
-            {},
-            createInitialState().location,
-            saved.state.location || {}
-          );
+      state.preferences =
+        Object.assign(
+          {},
+          defaults.preferences,
+          saved.state.preferences || {}
+        );
 
-        state.preferences =
-          Object.assign(
-            {},
-            createInitialState().preferences,
-            saved.state.preferences || {}
-          );
+      state.sourceData =
+        Object.assign(
+          {},
+          defaults.sourceData,
+          saved.state.sourceData || {}
+        );
 
-        state.sourceData =
-          Object.assign(
-            {},
-            createInitialState().sourceData,
-            saved.state.sourceData || {}
-          );
+      state.analysis =
+        Object.assign(
+          {},
+          defaults.analysis,
+          saved.state.analysis || {}
+        );
 
-        state.fit =
-          Object.assign(
-            {},
-            createInitialState().fit,
-            saved.state.fit || {}
-          );
+      state.fit =
+        Object.assign(
+          {},
+          defaults.fit,
+          saved.state.fit || {}
+        );
 
-        state.summary =
-          Object.assign(
-            {},
-            createInitialState().summary,
-            saved.state.summary || {}
-          );
-      }
+      state.summary =
+        Object.assign(
+          {},
+          defaults.summary,
+          saved.state.summary || {}
+        );
+
+      state.signals =
+        array(
+          saved.state.signals
+        );
+
+      state.findings =
+        array(
+          saved.state.findings
+        );
+
+      state.tradeoffs =
+        array(
+          saved.state.tradeoffs
+        );
+
+      state.gaps =
+        array(
+          saved.state.gaps
+        );
+
+      state.actions =
+        array(
+          saved.state.actions
+        );
+
+      state.aiContext =
+        saved.state.aiContext ||
+        {};
 
       return true;
     } catch (error) {
@@ -3846,7 +3926,7 @@
   }
 
   /* ============================================================
-   * RESET
+   * RESET / SERIALIZATION
    * ============================================================ */
 
   function reset(options) {
@@ -3893,10 +3973,6 @@
     return getState();
   }
 
-  /* ============================================================
-   * SERIALIZATION
-   * ============================================================ */
-
   function serialize() {
     return JSON.stringify(
       getResult(),
@@ -3922,7 +3998,8 @@
     if (
       !subscribers[eventName]
     ) {
-      subscribers[eventName] = [];
+      subscribers[eventName] =
+        [];
     }
 
     subscribers[eventName].push(
@@ -3931,7 +4008,8 @@
 
     return function unsubscribe() {
       const list =
-        subscribers[eventName] || [];
+        subscribers[eventName] ||
+        [];
 
       const index =
         list.indexOf(
@@ -3955,12 +4033,6 @@
     const requested =
       clone(options || {});
 
-    /*
-     * Restore first.
-     *
-     * This prevents initialization configuration from
-     * accidentally destroying a previously persisted state.
-     */
     if (
       config.persist
     ) {
