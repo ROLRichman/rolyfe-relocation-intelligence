@@ -3,9 +3,10 @@
    PROPERTY ANALYSIS ENGINE
    ------------------------------------------------------------
    File: /modules/ai/property-analysis.js
-   Version: 1.0.0
+   Version: 1.2.0
    Status: LIVE
-   Backup: /modules/ai/backups/property-analysis.backup-v1.0.0.js
+   Backup:
+   /modules/ai/backups/property-analysis.backup-v1.0.0.js
 
    Purpose:
    Property-level intelligence aggregation layer.
@@ -41,7 +42,7 @@
   "use strict";
 
   var MODULE_NAME = "ROlyfePropertyAnalysis";
-  var VERSION = "1.0.0";
+  var VERSION = "1.2.0";
 
   var DEFAULT_CONFIG = {
     autoInitialize: true,
@@ -81,7 +82,8 @@
       incentives: null,
       business: null,
       opportunity: null,
-      core: null
+      core: null,
+      comparables: []
     },
 
     financial: {},
@@ -118,7 +120,9 @@
      ============================================================ */
 
   function subscribe(listener) {
-    if (typeof listener !== "function") return function () {};
+    if (typeof listener !== "function") {
+      return function () {};
+    }
 
     listeners.push(listener);
 
@@ -151,7 +155,9 @@
      ============================================================ */
 
   function clone(value) {
-    if (value === undefined) return undefined;
+    if (value === undefined) {
+      return undefined;
+    }
 
     try {
       return JSON.parse(JSON.stringify(value));
@@ -178,11 +184,13 @@
 
   function number(value, fallback) {
     if (!hasValue(value)) {
-      return fallback !== undefined ? fallback : null;
+      return fallback !== undefined
+        ? fallback
+        : null;
     }
 
     if (typeof value === "number") {
-      return Number.isFinite(value)
+      return isFinite(value)
         ? value
         : fallback !== undefined
           ? fallback
@@ -194,9 +202,15 @@
       .replace(/,/g, "")
       .trim();
 
+    if (!cleaned) {
+      return fallback !== undefined
+        ? fallback
+        : null;
+    }
+
     var parsed = Number(cleaned);
 
-    return Number.isFinite(parsed)
+    return isFinite(parsed)
       ? parsed
       : fallback !== undefined
         ? fallback
@@ -214,9 +228,11 @@
   }
 
   function cap(array, limit) {
-    return Array.isArray(array)
-      ? array.slice(0, limit)
-      : [];
+    if (!Array.isArray(array)) {
+      return [];
+    }
+
+    return array.slice(0, limit);
   }
 
   function unique(array) {
@@ -247,12 +263,30 @@
 
   function safeCall(fn, fallback) {
     try {
-      return typeof fn === "function"
-        ? fn()
-        : fallback;
+      if (typeof fn !== "function") {
+        return fallback;
+      }
+
+      var result = fn();
+
+      return result === undefined
+        ? fallback
+        : result;
     } catch (error) {
       return fallback;
     }
+  }
+
+  function arrayValue(value) {
+    return Array.isArray(value)
+      ? value
+      : [];
+  }
+
+  function safeObject(value) {
+    return isObject(value)
+      ? value
+      : {};
   }
 
   /* ============================================================
@@ -267,8 +301,24 @@
     );
   }
 
+  function getNamedModule(names) {
+    var list = Array.isArray(names)
+      ? names
+      : [];
+
+    for (var i = 0; i < list.length; i++) {
+      if (window[list[i]]) {
+        return window[list[i]];
+      }
+    }
+
+    return null;
+  }
+
   function callModule(module, methodNames, args) {
-    if (!module) return null;
+    if (!module) {
+      return null;
+    }
 
     var methods = Array.isArray(methodNames)
       ? methodNames
@@ -279,7 +329,10 @@
 
       if (typeof module[method] === "function") {
         try {
-          return module[method].apply(module, args || []);
+          return module[method].apply(
+            module,
+            args || []
+          );
         } catch (error) {
           console.warn(
             "[ROlyfePropertyAnalysis] Module call failed:",
@@ -300,10 +353,16 @@
      ============================================================ */
 
   function normalizeProperty(input) {
-    input = isObject(input) ? input : {};
+    input = isObject(input)
+      ? input
+      : {};
 
     var property = {
-      id: firstValue(input.id, input.propertyId, input.property_id),
+      id: firstValue(
+        input.id,
+        input.propertyId,
+        input.property_id
+      ),
 
       address: firstValue(
         input.address,
@@ -498,7 +557,7 @@
         firstValue(
           input.sellingCosts,
           input.saleCosts,
-          input dispositionCosts
+          input.dispositionCosts
         ),
         0
       ),
@@ -575,7 +634,9 @@
   }
 
   function normalizeLocation(input) {
-    input = isObject(input) ? input : {};
+    input = isObject(input)
+      ? input
+      : {};
 
     return {
       address: firstValue(
@@ -626,7 +687,9 @@
   }
 
   function buildPropertyLocation(property) {
-    if (!property) return null;
+    if (!property) {
+      return null;
+    }
 
     return normalizeLocation({
       address: property.address,
@@ -644,11 +707,19 @@
      FINANCIAL ANALYSIS
      ============================================================ */
 
-  function calculateHoldingCost(property, holdingMonths) {
-    if (!property) return 0;
+  function calculateHoldingCost(
+    property,
+    holdingMonths
+  ) {
+    if (!property) {
+      return 0;
+    }
 
     if (hasValue(property.holdingCost)) {
-      return number(property.holdingCost, 0);
+      return number(
+        property.holdingCost,
+        0
+      );
     }
 
     var months = number(
@@ -656,9 +727,19 @@
       config.defaultHoldingMonths
     );
 
-    var monthlyTaxes = number(property.taxes, 0) / 12;
-    var monthlyInsurance = number(property.insurance, 0) / 12;
-    var monthlyHoa = number(property.hoa, 0);
+    if (!hasValue(months)) {
+      months =
+        config.defaultHoldingMonths;
+    }
+
+    var monthlyTaxes =
+      number(property.taxes, 0) / 12;
+
+    var monthlyInsurance =
+      number(property.insurance, 0) / 12;
+
+    var monthlyHoa =
+      number(property.hoa, 0);
 
     var monthlyCarry =
       monthlyTaxes +
@@ -676,23 +757,35 @@
       number(property.askingPrice, 0)
     );
 
-    var rehab = number(property.rehab, 0);
-    var closing = number(property.closingCosts, 0);
-    var financing = number(property.financingCost, 0);
-    var selling = number(property.sellingCosts, 0);
-    var assignment = number(property.assignmentFee, 0);
+    var rehab =
+      number(property.rehab, 0);
 
-    var holdingMonths = number(
-      property.holdingMonths,
-      config.defaultHoldingMonths
-    );
+    var closing =
+      number(property.closingCosts, 0);
 
-    var holdingCost = calculateHoldingCost(
-      property,
-      holdingMonths
-    );
+    var financing =
+      number(property.financingCost, 0);
 
-    var arv = number(property.arv);
+    var selling =
+      number(property.sellingCosts, 0);
+
+    var assignment =
+      number(property.assignmentFee, 0);
+
+    var holdingMonths =
+      number(
+        property.holdingMonths,
+        config.defaultHoldingMonths
+      );
+
+    var holdingCost =
+      calculateHoldingCost(
+        property,
+        holdingMonths
+      );
+
+    var arv =
+      number(property.arv);
 
     var totalProjectCost =
       purchase +
@@ -701,7 +794,8 @@
       financing +
       holdingCost;
 
-    var totalBasis = totalProjectCost;
+    var totalBasis =
+      totalProjectCost;
 
     var estimatedProfit = null;
 
@@ -766,20 +860,38 @@
 
       arv: arv,
 
-      totalProjectCost: totalProjectCost,
-      totalBasis: totalBasis,
+      totalProjectCost:
+        totalProjectCost,
 
-      estimatedProfit: estimatedProfit,
-      profitMargin: profitMargin,
+      totalBasis:
+        totalBasis,
 
-      equitySpread: equitySpread,
-      purchaseToARV: purchaseToARV,
-      rehabToARV: rehabToARV,
+      estimatedProfit:
+        estimatedProfit,
 
-      monthlyRent: number(property.rent),
-      annualTaxes: number(property.taxes),
-      annualInsurance: number(property.insurance),
-      monthlyHoa: number(property.hoa),
+      profitMargin:
+        profitMargin,
+
+      equitySpread:
+        equitySpread,
+
+      purchaseToARV:
+        purchaseToARV,
+
+      rehabToARV:
+        rehabToARV,
+
+      monthlyRent:
+        number(property.rent),
+
+      annualTaxes:
+        number(property.taxes),
+
+      annualInsurance:
+        number(property.insurance),
+
+      monthlyHoa:
+        number(property.hoa),
 
       status:
         hasValue(arv) &&
@@ -794,114 +906,36 @@
      ============================================================ */
 
   function collectLocationData(location) {
-    var module = getModule(
-      "ROlyfeLocationEngine",
-      "ROLYFE_LOCATION_ENGINE"
-    );
+    var module =
+      getNamedModule([
+        "ROlyfeLocationEngine",
+        "ROLYFE_LOCATION_ENGINE",
+        "ROlyfeLocationAnalysis",
+        "ROLYFE_LOCATION_ANALYSIS"
+      ]);
 
-    var result = callModule(
-      module,
-      [
-        "getProfile",
-        "getLocation",
-        "getState"
-      ],
-      []
-    );
+    var result =
+      callModule(
+        module,
+        [
+          "getProfile",
+          "getLocation",
+          "getState",
+          "getAnalysis",
+          "buildSharedContext"
+        ],
+        []
+      );
 
     return result || location || null;
   }
 
   function collectHousingData() {
-    var module = getModule(
-      "ROlyfeHousing",
-      "ROLYFE_HOUSING"
-    );
-
-    return callModule(
-      module,
-      [
-        "getProfile",
-        "getResult",
-        "getState"
-      ],
-      []
-    );
-  }
-
-  function collectClimateData() {
-    var module = getModule(
-      "ROlyfeClimate",
-      "ROLYFE_CLIMATE"
-    );
-
-    return callModule(
-      module,
-      [
-        "getProfile",
-        "getResult",
-        "getState"
-      ],
-      []
-    );
-  }
-
-  function collectWeatherData() {
-    var module = getModule(
-      "ROlyfeWeather",
-      "ROLYFE_WEATHER"
-    );
-
-    return callModule(
-      module,
-      [
-        "getProfile",
-        "getResult",
-        "getState"
-      ],
-      []
-    );
-  }
-
-  function collectRiskData() {
-    var module = getModule(
-      "ROlyfeRisk",
-      "ROLYFE_RISK"
-    );
-
-    return callModule(
-      module,
-      [
-        "getProfile",
-        "getResult",
-        "getState"
-      ],
-      []
-    );
-  }
-
-  function collectIncentiveData() {
-    var module = getModule(
-      "ROlyfeIncentives",
-      "ROLYFE_INCENTIVES"
-    );
-
-    return callModule(
-      module,
-      [
-        "getProfile",
-        "getResult",
-        "getState"
-      ],
-      []
-    );
-  }
-
-  function collectBusinessData() {
-    var module = getModule(
-      "ROlyfeBusiness",
-      "ROLYFE_BUSINESS"
-    );
+    var module =
+      getNamedModule([
+        "ROlyfeHousing",
+        "ROLYFE_HOUSING"
+      ]);
 
     return callModule(
       module,
@@ -909,22 +943,146 @@
         "getProfile",
         "getResult",
         "getState",
-        "getAnalysis"
+        "getAnalysis",
+        "buildSharedContext"
+      ],
+      []
+    );
+  }
+
+  function collectClimateData() {
+    var module =
+      getNamedModule([
+        "ROlyfeClimate",
+        "ROLYFE_CLIMATE"
+      ]);
+
+    return callModule(
+      module,
+      [
+        "getProfile",
+        "getResult",
+        "getState",
+        "getAnalysis",
+        "buildSharedContext"
+      ],
+      []
+    );
+  }
+
+  function collectWeatherData() {
+    var module =
+      getNamedModule([
+        "ROlyfeWeather",
+        "ROLYFE_WEATHER"
+      ]);
+
+    return callModule(
+      module,
+      [
+        "getProfile",
+        "getResult",
+        "getState",
+        "getAnalysis",
+        "buildSharedContext"
+      ],
+      []
+    );
+  }
+
+  function collectRiskData() {
+    var module =
+      getNamedModule([
+        "ROlyfeRisk",
+        "ROLYFE_RISK"
+      ]);
+
+    return callModule(
+      module,
+      [
+        "getProfile",
+        "getResult",
+        "getState",
+        "getAnalysis",
+        "buildSharedContext"
+      ],
+      []
+    );
+  }
+
+  function collectIncentiveData() {
+    var module =
+      getNamedModule([
+        "ROlyfeIncentives",
+        "ROLYFE_INCENTIVES"
+      ]);
+
+    return callModule(
+      module,
+      [
+        "getProfile",
+        "getResult",
+        "getState",
+        "getAnalysis",
+        "buildSharedContext"
+      ],
+      []
+    );
+  }
+
+  function collectBusinessData() {
+    var module =
+      getNamedModule([
+        "ROlyfeBusiness",
+        "ROLYFE_BUSINESS"
+      ]);
+
+    return callModule(
+      module,
+      [
+        "getProfile",
+        "getResult",
+        "getState",
+        "getAnalysis",
+        "buildSharedContext"
       ],
       []
     );
   }
 
   function collectOpportunityData() {
-    var module = getModule(
-      "ROlyfeOpportunityEngine",
-      "ROLYFE_OPPORTUNITY_ENGINE"
-    );
+    var module =
+      getNamedModule([
+        "ROlyfeOpportunityEngine",
+        "ROLYFE_OPPORTUNITY_ENGINE",
+        "ROlyfeOpportunity",
+        "ROLYFE_OPPORTUNITY"
+      ]);
 
     return callModule(
       module,
       [
         "getProfile",
+        "getAnalysis",
+        "getState",
+        "buildSharedContext"
+      ],
+      []
+    );
+  }
+
+  function collectCoreData() {
+    var module =
+      getNamedModule([
+        "ROlyfeCore",
+        "ROLYFE_CORE"
+      ]);
+
+    return callModule(
+      module,
+      [
+        "buildSharedContext",
+        "getAIContext",
         "getAnalysis",
         "getState"
       ],
@@ -932,31 +1090,16 @@
     );
   }
 
-  function collectCoreData() {
-    var module = getModule(
-      "ROlyfeCore",
-      "ROLYFE_CORE"
-    );
-
-    return callModule(
-      module,
-      [
-        "buildSharedContext",
-        "getAIContext",
-        "getAnalysis"
-      ],
-      []
-    );
-  }
-
   function collectContext() {
-    var property = state.property;
+    var property =
+      state.property;
 
     var location =
       buildPropertyLocation(property) ||
       state.location;
 
-    state.location = location;
+    state.location =
+      location;
 
     state.sourceData.location =
       collectLocationData(location);
@@ -985,6 +1128,9 @@
     state.sourceData.core =
       collectCoreData();
 
+    state.sourceData.property =
+      clone(state.property);
+
     return state.sourceData;
   }
 
@@ -993,9 +1139,11 @@
      ============================================================ */
 
   function ingestProperty(input) {
-    var property = normalizeProperty(input);
+    var property =
+      normalizeProperty(input);
 
-    state.property = property;
+    state.property =
+      property;
 
     state.location =
       buildPropertyLocation(property);
@@ -1007,22 +1155,39 @@
       buildFinancialProfile(property);
 
     state.physical = {
-      type: property.type,
-      beds: property.beds,
-      baths: property.baths,
-      sqft: property.sqft,
-      lot: property.lot,
-      yearBuilt: property.yearBuilt,
+      type:
+        property.type,
+
+      beds:
+        property.beds,
+
+      baths:
+        property.baths,
+
+      sqft:
+        property.sqft,
+
+      lot:
+        property.lot,
+
+      yearBuilt:
+        property.yearBuilt,
+
       condition:
         firstValue(
-          property.raw && property.raw.condition,
-          property.raw && property.raw.propertyCondition
+          property.raw &&
+            property.raw.condition,
+
+          property.raw &&
+            property.raw.propertyCondition
         )
     };
 
-    state.status = "property_loaded";
+    state.status =
+      "property_loaded";
 
-    state.metadata.updatedAt = now();
+    state.metadata.updatedAt =
+      now();
 
     emit(
       "property:ingested",
@@ -1041,14 +1206,29 @@
   function buildSignals() {
     var signals = [];
 
-    var property = state.property || {};
-    var financial = state.financial || {};
-    var housing = state.sourceData.housing || {};
-    var climate = state.sourceData.climate || {};
-    var weather = state.sourceData.weather || {};
-    var risk = state.sourceData.risk || {};
-    var business = state.sourceData.business || {};
-    var incentives = state.sourceData.incentives || {};
+    var property =
+      state.property || {};
+
+    var financial =
+      state.financial || {};
+
+    var housing =
+      state.sourceData.housing || {};
+
+    var climate =
+      state.sourceData.climate || {};
+
+    var weather =
+      state.sourceData.weather || {};
+
+    var risk =
+      state.sourceData.risk || {};
+
+    var business =
+      state.sourceData.business || {};
+
+    var incentives =
+      state.sourceData.incentives || {};
 
     if (hasValue(property.arv)) {
       signals.push({
@@ -1132,10 +1312,21 @@
       });
     }
 
+    var housingProfile =
+      safeObject(
+        housing.profile ||
+        housing.housingProfile ||
+        housing
+      );
+
     if (
-      housing &&
-      isObject(housing.profile) &&
-      hasValue(housing.profile.medianHomePrice)
+      hasValue(
+        firstValue(
+          housingProfile.medianHomePrice,
+          housingProfile.median_home_price,
+          housingProfile.medianPrice
+        )
+      )
     ) {
       signals.push({
         domain: "housing",
@@ -1148,9 +1339,10 @@
     }
 
     if (
-      climate &&
-      (hasValue(climate.climateZone) ||
-        hasValue(climate.profile))
+      hasValue(climate.climateZone) ||
+      hasValue(climate.zone) ||
+      hasValue(climate.profile) ||
+      hasValue(climate.overall)
     ) {
       signals.push({
         domain: "climate",
@@ -1163,7 +1355,6 @@
     }
 
     if (
-      weather &&
       Array.isArray(weather.alerts) &&
       weather.alerts.length
     ) {
@@ -1178,11 +1369,13 @@
     }
 
     if (
-      risk &&
       hasValue(
-        risk.riskLevel ||
-        risk.overallRisk ||
-        risk.profile
+        firstValue(
+          risk.riskLevel,
+          risk.overallRisk,
+          risk.level,
+          risk.profile
+        )
       )
     ) {
       signals.push({
@@ -1196,11 +1389,8 @@
     }
 
     if (
-      incentives &&
-      (
-        Array.isArray(incentives.matches) ||
-        Array.isArray(incentives.programs)
-      )
+      Array.isArray(incentives.matches) ||
+      Array.isArray(incentives.programs)
     ) {
       signals.push({
         domain: "incentives",
@@ -1213,11 +1403,8 @@
     }
 
     if (
-      business &&
-      (
-        Array.isArray(business.matches) ||
-        Array.isArray(business.programs)
-      )
+      Array.isArray(business.matches) ||
+      Array.isArray(business.programs)
     ) {
       signals.push({
         domain: "business",
@@ -1242,8 +1429,11 @@
   function buildFindings() {
     var findings = [];
 
-    var property = state.property || {};
-    var financial = state.financial || {};
+    var property =
+      state.property || {};
+
+    var financial =
+      state.financial || {};
 
     if (
       hasValue(financial.arv) &&
@@ -1258,8 +1448,10 @@
         values: {
           purchasePrice:
             financial.purchasePrice,
+
           arv:
             financial.arv,
+
           purchaseToARV:
             financial.purchaseToARV
         }
@@ -1279,6 +1471,7 @@
         values: {
           rehab:
             financial.rehab,
+
           rehabToARV:
             financial.rehabToARV
         }
@@ -1297,6 +1490,7 @@
         values: {
           estimatedProfit:
             financial.estimatedProfit,
+
           profitMargin:
             financial.profitMargin
         }
@@ -1344,12 +1538,14 @@
     var risk =
       state.sourceData.risk || {};
 
-    if (
-      hasValue(
-        risk.riskLevel ||
-        risk.overallRisk
-      )
-    ) {
+    var riskLevel =
+      firstValue(
+        risk.riskLevel,
+        risk.overallRisk,
+        risk.level
+      );
+
+    if (hasValue(riskLevel)) {
       findings.push({
         domain: "risk",
         type: "risk_context",
@@ -1358,16 +1554,13 @@
           "The risk module has supplied geographic hazard context.",
         values: {
           riskLevel:
-            firstValue(
-              risk.riskLevel,
-              risk.overallRisk
-            )
+            riskLevel
         }
       });
     }
 
     return cap(
-      findings,
+      unique(findings),
       config.maxFindings
     );
   }
@@ -1377,8 +1570,11 @@
      ============================================================ */
 
   function buildTradeoffs() {
-    var property = state.property || {};
-    var financial = state.financial || {};
+    var property =
+      state.property || {};
+
+    var financial =
+      state.financial || {};
 
     var tradeoffs = [];
 
@@ -1410,9 +1606,7 @@
       });
     }
 
-    if (
-      hasValue(property.rent)
-    ) {
+    if (hasValue(property.rent)) {
       tradeoffs.push({
         domain: "housing",
         factor: "Rental potential",
@@ -1423,9 +1617,7 @@
       });
     }
 
-    if (
-      state.sourceData.incentives
-    ) {
+    if (state.sourceData.incentives) {
       tradeoffs.push({
         domain: "incentives",
         factor: "Programs",
@@ -1436,9 +1628,7 @@
       });
     }
 
-    if (
-      state.sourceData.risk
-    ) {
+    if (state.sourceData.risk) {
       tradeoffs.push({
         domain: "risk",
         factor: "Hazard exposure",
@@ -1460,7 +1650,9 @@
      ============================================================ */
 
   function buildGaps() {
-    var property = state.property || {};
+    var property =
+      state.property || {};
+
     var gaps = [];
 
     if (!hasValue(property.address)) {
@@ -1483,8 +1675,10 @@
       });
     }
 
-    if (!hasValue(property.purchasePrice) &&
-        !hasValue(property.askingPrice)) {
+    if (
+      !hasValue(property.purchasePrice) &&
+      !hasValue(property.askingPrice)
+    ) {
       gaps.push({
         domain: "financial",
         field: "purchasePrice",
@@ -1585,7 +1779,7 @@
     }
 
     return cap(
-      gaps,
+      unique(gaps),
       config.maxGaps
     );
   }
@@ -1595,7 +1789,9 @@
      ============================================================ */
 
   function buildActions() {
-    var property = state.property || {};
+    var property =
+      state.property || {};
+
     var actions = [];
 
     if (!hasValue(property.address)) {
@@ -1689,7 +1885,8 @@
       housing.housingProfile ||
       housing;
 
-    var property = state.property || {};
+    var property =
+      state.property || {};
 
     var medianHomePrice =
       number(
@@ -1787,7 +1984,8 @@
           ? weather.alerts.length
           : 0,
 
-      verificationRequired: true,
+      verificationRequired:
+        true,
 
       sourceAvailable:
         !!state.sourceData.risk
@@ -1829,7 +2027,9 @@
       businessPrograms:
         cap(
           unique(
-            businessMatches.concat(programs)
+            businessMatches.concat(
+              programs
+            )
           ),
           30
         ),
@@ -1846,15 +2046,19 @@
 
       opportunityAvailable:
         !!(
-          business ||
-          incentives
+          state.sourceData.business ||
+          state.sourceData.incentives ||
+          state.sourceData.opportunity
         ),
 
       businessDataAvailable:
         !!state.sourceData.business,
 
       incentiveDataAvailable:
-        !!state.sourceData.incentives
+        !!state.sourceData.incentives,
+
+      opportunityEngineAvailable:
+        !!state.sourceData.opportunity
     };
   }
 
@@ -1864,10 +2068,23 @@
 
   function buildAnalysis() {
     state.market =
-      buildMarketAnalysis();
+      safeCall(
+        function () {
+          return buildMarketAnalysis();
+        },
+        {}
+      );
 
     state.risk =
-      buildRiskAnalysis();
+      safeCall(
+        function () {
+          return buildRiskAnalysis();
+        },
+        {
+          verificationRequired: true,
+          sourceAvailable: false
+        }
+      );
 
     state.analysis = {
       financial:
@@ -1883,7 +2100,12 @@
         clone(state.risk),
 
       opportunity:
-        buildOpportunityAnalysis()
+        safeCall(
+          function () {
+            return buildOpportunityAnalysis();
+          },
+          {}
+        )
     };
 
     return state.analysis;
@@ -1894,20 +2116,25 @@
      ============================================================ */
 
   function buildSummary() {
-    var property = state.property || {};
-    var financial = state.financial || {};
+    var property =
+      state.property || {};
+
+    var financial =
+      state.financial || {};
+
+    var addressFallback = [
+      property.city,
+      property.state,
+      property.zip
+    ]
+      .filter(Boolean)
+      .join(", ");
 
     return {
       property:
         firstValue(
           property.address,
-          [
-            property.city,
-            property.state,
-            property.zip
-          ]
-            .filter(Boolean)
-            .join(", ")
+          addressFallback
         ),
 
       propertyType:
@@ -1968,14 +2195,13 @@
         type: "property",
         label: "Property source",
         url: property.url,
-        source: property.source || "property_input"
+        source:
+          property.source ||
+          "property_input"
       });
     }
 
-    var weather =
-      state.sourceData.weather;
-
-    if (weather) {
+    if (state.sourceData.weather) {
       sources.push({
         type: "weather",
         label: "Weather intelligence",
@@ -1983,10 +2209,7 @@
       });
     }
 
-    var housing =
-      state.sourceData.housing;
-
-    if (housing) {
+    if (state.sourceData.housing) {
       sources.push({
         type: "housing",
         label: "Housing intelligence",
@@ -1994,10 +2217,7 @@
       });
     }
 
-    var climate =
-      state.sourceData.climate;
-
-    if (climate) {
+    if (state.sourceData.climate) {
       sources.push({
         type: "climate",
         label: "Climate intelligence",
@@ -2005,10 +2225,7 @@
       });
     }
 
-    var risk =
-      state.sourceData.risk;
-
-    if (risk) {
+    if (state.sourceData.risk) {
       sources.push({
         type: "risk",
         label: "Risk intelligence",
@@ -2016,10 +2233,7 @@
       });
     }
 
-    var incentives =
-      state.sourceData.incentives;
-
-    if (incentives) {
+    if (state.sourceData.incentives) {
       sources.push({
         type: "incentives",
         label: "Incentive intelligence",
@@ -2027,14 +2241,19 @@
       });
     }
 
-    var business =
-      state.sourceData.business;
-
-    if (business) {
+    if (state.sourceData.business) {
       sources.push({
         type: "business",
         label: "Business intelligence",
         source: "business_module"
+      });
+    }
+
+    if (state.sourceData.opportunity) {
+      sources.push({
+        type: "opportunity",
+        label: "Opportunity intelligence",
+        source: "opportunity_module"
       });
     }
 
@@ -2049,15 +2268,6 @@
      ============================================================ */
 
   function buildAIContext() {
-    var property =
-      clone(state.property);
-
-    var financial =
-      clone(state.financial);
-
-    var analysis =
-      clone(state.analysis);
-
     return {
       module:
         MODULE_NAME,
@@ -2066,13 +2276,13 @@
         VERSION,
 
       property:
-        property,
+        clone(state.property),
 
       location:
         clone(state.location),
 
       financial:
-        financial,
+        clone(state.financial),
 
       market:
         clone(state.market),
@@ -2084,7 +2294,7 @@
         clone(state.risk),
 
       analysis:
-        analysis,
+        clone(state.analysis),
 
       signals:
         clone(state.signals),
@@ -2105,6 +2315,9 @@
         clone(state.sources),
 
       sourceData: {
+        location:
+          clone(state.sourceData.location),
+
         housing:
           clone(state.sourceData.housing),
 
@@ -2169,6 +2382,12 @@
       signals:
         clone(state.signals),
 
+      findings:
+        clone(state.findings),
+
+      tradeoffs:
+        clone(state.tradeoffs),
+
       gaps:
         clone(state.gaps),
 
@@ -2187,17 +2406,25 @@
      MAIN ANALYSIS
      ============================================================ */
 
-  function analyze(propertyInput, options) {
-    options = isObject(options)
-      ? options
-      : {};
+  function analyze(
+    propertyInput,
+    options
+  ) {
+    options =
+      isObject(options)
+        ? options
+        : {};
 
     if (propertyInput) {
-      ingestProperty(propertyInput);
+      ingestProperty(
+        propertyInput
+      );
     }
 
     if (options.location) {
-      setLocation(options.location);
+      setLocation(
+        options.location
+      );
     }
 
     if (options.preferences) {
@@ -2207,21 +2434,70 @@
     }
 
     if (!state.property) {
-      state.status = "missing_property";
-      state.metadata.updatedAt = now();
+      state.status =
+        "missing_property";
 
-      emit("analysis:missing_property");
+      state.metadata.updatedAt =
+        now();
+
+      state.gaps = [
+        {
+          domain: "property",
+          field: "property",
+          importance: "high",
+          message:
+            "No property has been supplied for analysis."
+        }
+      ];
+
+      state.actions = [
+        {
+          priority: "high",
+          domain: "property",
+          action:
+            "Supply a property before running property-level intelligence."
+        }
+      ];
+
+      state.summary =
+        buildSummary();
+
+      state.aiContext =
+        buildAIContext();
+
+      emit(
+        "analysis:missing_property"
+      );
 
       return clone(state);
     }
 
-    state.status = "analyzing";
+    state.status =
+      "analyzing";
 
-    collectContext();
+    emit(
+      "analysis:started",
+      {
+        property:
+          clone(state.property)
+      }
+    );
+
+    safeCall(
+      function () {
+        collectContext();
+      },
+      null
+    );
 
     state.financial =
-      buildFinancialProfile(
-        state.property
+      safeCall(
+        function () {
+          return buildFinancialProfile(
+            state.property
+          );
+        },
+        {}
       );
 
     state.physical = {
@@ -2244,33 +2520,63 @@
         state.property.yearBuilt
     };
 
-    buildAnalysis();
+    safeCall(
+      function () {
+        buildAnalysis();
+      },
+      null
+    );
 
     state.signals =
-      buildSignals();
+      safeCall(
+        buildSignals,
+        []
+      );
 
     state.findings =
-      buildFindings();
+      safeCall(
+        buildFindings,
+        []
+      );
 
     state.tradeoffs =
-      buildTradeoffs();
+      safeCall(
+        buildTradeoffs,
+        []
+      );
 
     state.gaps =
-      buildGaps();
+      safeCall(
+        buildGaps,
+        []
+      );
 
     state.actions =
-      buildActions();
+      safeCall(
+        buildActions,
+        []
+      );
 
     state.sources =
-      buildSources();
+      safeCall(
+        buildSources,
+        []
+      );
 
     state.summary =
-      buildSummary();
+      safeCall(
+        buildSummary,
+        {}
+      );
 
     state.aiContext =
-      buildAIContext();
+      safeCall(
+        buildAIContext,
+        {}
+      );
 
-    state.status = "complete";
+    state.status =
+      "complete";
 
     state.metadata.lastAnalysisAt =
       now();
@@ -2302,7 +2608,9 @@
      COMPARABLE PROPERTIES
      ============================================================ */
 
-  function ingestComparables(properties) {
+  function ingestComparables(
+    properties
+  ) {
     var list =
       Array.isArray(properties)
         ? properties
@@ -2314,7 +2622,9 @@
     state.sourceData.comparables =
       cap(
         list.map(function (item) {
-          return normalizeProperty(item);
+          return normalizeProperty(
+            item
+          );
         }),
         config.maxComparableProperties
       );
@@ -2335,7 +2645,8 @@
 
   function getComparables() {
     return clone(
-      state.sourceData.comparables || []
+      state.sourceData.comparables ||
+      []
     );
   }
 
@@ -2345,11 +2656,20 @@
 
     if (!comps.length) {
       return {
-        status: "no_comparables",
-        count: 0,
-        averagePrice: null,
-        averageARV: null,
-        averageSqft: null
+        status:
+          "no_comparables",
+
+        count:
+          0,
+
+        averagePrice:
+          null,
+
+        averageARV:
+          null,
+
+        averageSqft:
+          null
       };
     }
 
@@ -2357,32 +2677,51 @@
     var arvs = [];
     var sqfts = [];
 
-    comps.forEach(function (comp) {
-      if (hasValue(comp.purchasePrice)) {
-        prices.push(
-          comp.purchasePrice
-        );
-      } else if (hasValue(comp.askingPrice)) {
-        prices.push(
-          comp.askingPrice
-        );
-      }
+    comps.forEach(
+      function (comp) {
+        if (
+          hasValue(
+            comp.purchasePrice
+          )
+        ) {
+          prices.push(
+            comp.purchasePrice
+          );
+        } else if (
+          hasValue(
+            comp.askingPrice
+          )
+        ) {
+          prices.push(
+            comp.askingPrice
+          );
+        }
 
-      if (hasValue(comp.arv)) {
-        arvs.push(comp.arv);
-      }
+        if (hasValue(comp.arv)) {
+          arvs.push(
+            comp.arv
+          );
+        }
 
-      if (hasValue(comp.sqft)) {
-        sqfts.push(comp.sqft);
+        if (hasValue(comp.sqft)) {
+          sqfts.push(
+            comp.sqft
+          );
+        }
       }
-    });
+    );
 
     function average(values) {
-      if (!values.length) return null;
+      if (!values.length) {
+        return null;
+      }
 
       return (
         values.reduce(
-          function (sum, value) {
+          function (
+            sum,
+            value
+          ) {
             return sum + value;
           },
           0
@@ -2391,12 +2730,18 @@
     }
 
     return {
-      status: "complete",
-      count: comps.length,
+      status:
+        "complete",
+
+      count:
+        comps.length,
+
       averagePrice:
         average(prices),
+
       averageARV:
         average(arvs),
+
       averageSqft:
         average(sqfts)
     };
@@ -2407,14 +2752,21 @@
      ============================================================ */
 
   function checkDeal(overrides) {
+    var base =
+      state.property || {};
+
+    var overrideData =
+      isObject(overrides)
+        ? overrides
+        : {};
+
     var property =
       normalizeProperty(
         Object.assign(
           {},
-          state.property || {},
-          isObject(overrides)
-            ? overrides
-            : {}
+          base.raw || base,
+          base,
+          overrideData
         )
       );
 
@@ -2456,12 +2808,21 @@
 
   function setLocation(location) {
     state.location =
-      normalizeLocation(location);
+      normalizeLocation(
+        location
+      );
 
     if (state.property) {
       state.property.location =
-        clone(state.location);
+        clone(
+          state.location
+        );
     }
+
+    state.sourceData.location =
+      clone(
+        state.location
+      );
 
     state.metadata.updatedAt =
       now();
@@ -2473,7 +2834,9 @@
       clone(state.location)
     );
 
-    return clone(state.location);
+    return clone(
+      state.location
+    );
   }
 
   function getLocation() {
@@ -2482,7 +2845,9 @@
     );
   }
 
-  function setPreferences(preferences) {
+  function setPreferences(
+    preferences
+  ) {
     state.preferences =
       Object.assign(
         {},
@@ -2499,7 +2864,9 @@
 
     emit(
       "preferences:changed",
-      clone(state.preferences)
+      clone(
+        state.preferences
+      )
     );
 
     return clone(
@@ -2573,7 +2940,7 @@
 
   function getAIContext() {
     return clone(
-      state.aiContext
+      buildAIContext()
     );
   }
 
@@ -2597,7 +2964,9 @@
   }
 
   function getConfig() {
-    return clone(config);
+    return clone(
+      config
+    );
   }
 
   /* ============================================================
@@ -2637,7 +3006,6 @@
 
   function restore() {
     if (
-      !config.persist ||
       !window.localStorage
     ) {
       return false;
@@ -2658,18 +3026,6 @@
 
       if (
         saved &&
-        isObject(saved.state)
-      ) {
-        state =
-          Object.assign(
-            {},
-            clone(EMPTY_STATE),
-            saved.state
-          );
-      }
-
-      if (
-        saved &&
         isObject(saved.config)
       ) {
         config =
@@ -2678,6 +3034,89 @@
             DEFAULT_CONFIG,
             saved.config
           );
+      }
+
+      if (
+        saved &&
+        isObject(saved.state)
+      ) {
+        var restored =
+          Object.assign(
+            {},
+            clone(EMPTY_STATE),
+            saved.state
+          );
+
+        restored.sourceData =
+          Object.assign(
+            {},
+            clone(
+              EMPTY_STATE.sourceData
+            ),
+            isObject(
+              saved.state.sourceData
+            )
+              ? saved.state.sourceData
+              : {}
+          );
+
+        restored.metadata =
+          Object.assign(
+            {},
+            clone(
+              EMPTY_STATE.metadata
+            ),
+            isObject(
+              saved.state.metadata
+            )
+              ? saved.state.metadata
+              : {}
+          );
+
+        restored.preferences =
+          isObject(
+            saved.state.preferences
+          )
+            ? saved.state.preferences
+            : {};
+
+        restored.signals =
+          arrayValue(
+            saved.state.signals
+          );
+
+        restored.findings =
+          arrayValue(
+            saved.state.findings
+          );
+
+        restored.tradeoffs =
+          arrayValue(
+            saved.state.tradeoffs
+          );
+
+        restored.gaps =
+          arrayValue(
+            saved.state.gaps
+          );
+
+        restored.actions =
+          arrayValue(
+            saved.state.actions
+          );
+
+        restored.sources =
+          arrayValue(
+            saved.state.sources
+          );
+
+        restored.sourceData.comparables =
+          arrayValue(
+            restored.sourceData.comparables
+          );
+
+        state =
+          restored;
       }
 
       return true;
@@ -2720,11 +3159,32 @@
      ============================================================ */
 
   function initialize(options) {
-    configure(options);
+    var requestedOptions =
+      isObject(options)
+        ? options
+        : {};
 
+    /*
+      Restore first so persisted configuration is available.
+    */
     restore();
 
-    state.initialized = true;
+    /*
+      Explicit runtime options override
+      restored configuration.
+    */
+    if (
+      Object.keys(
+        requestedOptions
+      ).length
+    ) {
+      configure(
+        requestedOptions
+      );
+    }
+
+    state.initialized =
+      true;
 
     if (!state.metadata.createdAt) {
       state.metadata.createdAt =
@@ -2734,15 +3194,21 @@
     state.metadata.updatedAt =
       now();
 
-    if (state.status === "idle") {
-      state.status = "ready";
+    if (
+      state.status === "idle"
+    ) {
+      state.status =
+        "ready";
     }
 
     emit(
       "initialized",
       {
-        version: VERSION,
-        status: state.status
+        version:
+          VERSION,
+
+        status:
+          state.status
       }
     );
 
@@ -2754,7 +3220,9 @@
      ============================================================ */
 
   function getState() {
-    return clone(state);
+    return clone(
+      state
+    );
   }
 
   function getStatus() {
@@ -2780,8 +3248,14 @@
       signalCount:
         state.signals.length,
 
+      findingCount:
+        state.findings.length,
+
       gapCount:
         state.gaps.length,
+
+      actionCount:
+        state.actions.length,
 
       lastAnalysisAt:
         state.metadata.lastAnalysisAt
@@ -2809,27 +3283,44 @@
      ============================================================ */
 
   var API = {
-    VERSION: VERSION,
-    MODULE_NAME: MODULE_NAME,
+    VERSION:
+      VERSION,
 
-    initialize: initialize,
+    MODULE_NAME:
+      MODULE_NAME,
 
-    configure: configure,
-    getConfig: getConfig,
+    initialize:
+      initialize,
 
-    reset: reset,
+    configure:
+      configure,
 
-    analyze: analyze,
-    analyzeProperty: analyzeProperty,
+    getConfig:
+      getConfig,
 
-    ingestProperty: ingestProperty,
+    reset:
+      reset,
 
-    setLocation: setLocation,
-    getLocation: getLocation,
+    analyze:
+      analyze,
 
-    setPreferences: setPreferences,
+    analyzeProperty:
+      analyzeProperty,
 
-    getProperty: getProperty,
+    ingestProperty:
+      ingestProperty,
+
+    setLocation:
+      setLocation,
+
+    getLocation:
+      getLocation,
+
+    setPreferences:
+      setPreferences,
+
+    getProperty:
+      getProperty,
 
     getFinancialProfile:
       getFinancialProfile,
@@ -2915,8 +3406,8 @@
   }
 
   if (
-    document.readyState ===
-    "loading"
+    typeof document !== "undefined" &&
+    document.readyState === "loading"
   ) {
     document.addEventListener(
       "DOMContentLoaded",
