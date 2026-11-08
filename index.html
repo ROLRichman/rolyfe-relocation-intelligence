@@ -120,7 +120,7 @@ function restoreDealTimeline(d){const x=d?.dealTimeline||{};Object.keys(x).forEa
 function clearDealTimeline(){['timelineAddress','timelineClosing','timelineMoveIn','inspectionDate','dueDiligenceDate','fundingDate','appraisalDate','earnestDate','assignmentDate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});updateDealTimeline()}
 function initFundingChecklist(){const a=['Purpose identified','Loan type selected','Requested amount','Property/project information','Do you have a property under contract?','Contract / closing date captured when applicable','ARV or collateral value where applicable','Income/revenue information','Exit strategy','Supporting documents','Lender/provider route selected'];document.getElementById('fundingChecklist').innerHTML=a.map(x=>'<label class="check"><input type="checkbox"> '+x+'</label>').join('')}
 function updateClock(){const x=document.getElementById('clock');if(x)x.textContent=new Date().toLocaleString([], {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit'})}updateClock();setInterval(updateClock,1000);document.addEventListener('DOMContentLoaded',()=>{initTheme();initFundingChecklist();const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);document.getElementById('searchResult').innerHTML='<strong>Saved RO’Lyfe analysis detected.</strong> Use Resume Saved to continue.';restoreDealTimeline(d)}toggleContractFields()});
-</script><script src="https://rolrichman.github.io/rolyfe-property-research-intelligence/shared/property-research-dock.js"></script>
+</script><script src="https://rolrichman.github.io/rolyfe-property-research-intelligence/shared/property-research-dock.js?v=county-zip-20261108"></script><script src="https://rolrichman.github.io/rolyfe-property-research-intelligence/shared/area-intelligence.js?v=county-zip-20261108"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script id="relocation-live-map-engine">
 (function(){
@@ -138,6 +138,7 @@ function init(){
  if(!el)return;
  if(!window.L){status("Map library did not load. Refresh the page or check the network.");return;}
  map=L.map(el,{zoomControl:false,scrollWheelZoom:false,touchZoom:true,doubleClickZoom:true,zoomSnap:0.5,zoomDelta:0.5}).setView(PHILLY,10);
+ window.rolyfeRelocationMap=map;
  L.control.zoom({position:"topright"}).addTo(map);
  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>'}).addTo(map);
  marker=L.marker(PHILLY).addTo(map).bindPopup("Philadelphia · starting map view");
